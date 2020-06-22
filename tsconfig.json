@@ -1,0 +1,23 @@
+{
+  "compilerOptions": {
+    "target": "es5",
+    "moduleResolution": "node",
+    "lib": ["es6", "dom"],
+    "outDir": "build",
+    "rootDir": "src",
+    "strict": false,
+    "esModuleInterop": true,
+    "declaration": true,
+    "allowSyntheticDefaultImports": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "stripInternal": true,
+    "strictNullChecks": true
+  },
+  "typedocOptions": {
+    "mode": "file",
+    "module": "commonjs",
+    "excludePrivate": true,
+    "excludeNotExported": true
+  }
+}
