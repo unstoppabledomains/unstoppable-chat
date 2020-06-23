@@ -479,9 +479,9 @@ export default class UnstoppableChat {
     if (otherPeer.epub[2] === ':') {
       otherPeerEpub = JSON.parse(otherPeer.epub)[':'];
     }
-    async function loadMsgsOf(path, name) {
+    async function loadMsgsOf(path, name, emitter) {
       path.not((key) => {
-        this.emitter.emit('contactMessages', loadedMsgsList);
+        emitter.emit('contactMessages', loadedMsgsList);
       });
       path.on((msgs) => {
         if (!msgs) return;
@@ -530,10 +530,15 @@ export default class UnstoppableChat {
         });
       });
     }
-    loadMsgsOf(gun.user().get('pchat').get(pubKey), this.publicName);
+    loadMsgsOf(
+      gun.user().get('pchat').get(pubKey),
+      this.publicName,
+      this.emitter,
+    );
     loadMsgsOf(
       gun.user(pubKey).get('pchat').get(gun.user()._.sea.pub),
       publicName,
+      this.emitter,
     );
   }
 
