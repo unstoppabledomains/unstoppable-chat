@@ -1,6 +1,6 @@
 {
   "name": "@unstoppabledomains/chat",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "Decentralized chat library",
   "main": "index.js",
   "repository": "https://github.com/unstoppabledomains/unstoppable-chat.git",
@@ -10,15 +10,14 @@
     "release": "RELEASE=patch yarn release:run",
     "release:minor": "RELEASE=minor yarn release:run",
     "release:major": "RELEASE=major yarn release:run",
-    "release:run": "yarn build && yarn size && yarn publish --$RELEASE && yarn docs && yarn docs:deploy && yarn release:tag",
+    "release:run": "yarn build && yarn publish --$RELEASE --access public && yarn release:tag",
     "release:tag": "git push origin v$npm_package_version",
     "start": "npm run build:live",
     "dev": "yarn build && ./build/cli/cli.js",
     "build": "tsc -p .",
     "format": "prettier --semi --write -l **/*.{js,json,ts}",
     "build:live": "nodemon --watch 'src/**/*.ts' --exec yarn build",
-    "analyze": "webpack-cli",
-    "size": "yarn run sizecheck -p ./package.json -l 500 -v"
+    "analyze": "webpack-cli"
   },
   "files": [
     "build"
