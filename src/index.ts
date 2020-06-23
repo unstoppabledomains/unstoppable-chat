@@ -992,9 +992,9 @@ export default class UnstoppableChat {
     const loadedMsgsList: Message[] = [];
     const loadedMsgs = {};
     const channelSec = await (Gun.SEA as any).secret(channel.key, channel.pair);
-    async function loadMsgsOf(path, name) {
+    async function loadMsgsOf(path, name, emitter) {
       path.not((key) => {
-        this.emitter.emit('channelMessages', loadedMsgsList);
+        emitter.emit('channelMessages', loadedMsgsList);
       });
       path.on((peerMsgs) => {
         if (!peerMsgs) return;
@@ -1081,7 +1081,7 @@ export default class UnstoppableChat {
               .get('new')
               .get(msgData.time)
               .put('disabled');
-            this.emitter.emit('channelMessages', loadedMsgsList);
+            emitter.emit('channelMessages', loadedMsgsList);
           });
         });
       });
@@ -1125,7 +1125,7 @@ export default class UnstoppableChat {
           else if (!peer.disabled && peer.name && !loadedPeers[pubKey]) {
             loadedPeers[pubKey] = true;
             channel.peers[pubKey] = peer;
-            loadMsgsOf(peerChannelChatPath, peer.name);
+            loadMsgsOf(peerChannelChatPath, peer.name, this.emitter);
           }
         });
       });
@@ -1714,9 +1714,9 @@ export default class UnstoppableChat {
       announcement.key,
       announcement.pair,
     );
-    async function loadMsgsOf(path, name) {
+    async function loadMsgsOf(path, name, emitter) {
       path.not((key) => {
-        this.emitter.emit('announcementMessages', loadedMsgsList);
+        emitter.emit('announcementMessages', loadedMsgsList);
       });
       path.on((peerMsgs) => {
         if (!peerMsgs) return;
@@ -1815,7 +1815,7 @@ export default class UnstoppableChat {
                 peerInfo: msgData.peerInfo,
               });
               loadedMsgsList.sort((a, b) => a.time - b.time);
-              this.emitter.emit('announcementMessages', loadedMsgsList);
+              emitter.emit('announcementMessages', loadedMsgsList);
             }
             gun
               .get('announcement')
@@ -1868,7 +1868,7 @@ export default class UnstoppableChat {
           else if (!peer.disabled && peer.name && !loadedPeers[pubKey]) {
             loadedPeers[pubKey] = true;
             announcement.peers[pubKey] = peer;
-            loadMsgsOf(peerAnnouncementChatPath, peer.name);
+            loadMsgsOf(peerAnnouncementChatPath, peer.name, this.emitter);
           }
         });
       });
