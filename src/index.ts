@@ -49,7 +49,24 @@ interface Message {
   peerInfo?: string;
 }
 
-export default class GunChat {
+interface Events {
+  channels: Channel[];
+  channelInvites: Channel[];
+  channelMessages: Message[];
+  contacts: Contact[];
+  contactInvites: Contact[];
+  contactMessages: Message[];
+  announcements: Announcement[];
+  announcementInvites: Announcement[];
+  announcementMessages: Message[];
+}
+
+interface TypedEventEmitter<T> {
+  on<K extends keyof T>(s: K, listener: (v: T[K]) => void);
+  emit<K extends keyof T>(s: K, param: T[K]);
+}
+
+export default class UnstoppableChat {
   gun: any;
   publicName: string | null;
   contactsList: Contact[];
@@ -61,6 +78,7 @@ export default class GunChat {
   activeContact: string | null;
   activeChannel: string | null;
   activeAnnouncement: string | null;
+  emitter: TypedEventEmitter<Events>;
 
   constructor(superpeers: string[]) {
     this.gun = new Gun(superpeers);
@@ -74,6 +92,7 @@ export default class GunChat {
     this.activeContact = null;
     this.activeChannel = null;
     this.activeAnnouncement = null;
+    this.emitter = new EventEmitter();
   }
 
   async validatePubKeyFromUsername(
@@ -219,24 +238,27 @@ export default class GunChat {
     gun.user().get('contacts').get(pubKey).put({ disabled: true });
   }
 
-  async loadContacts(cb: (contacts: Contact[]) => void) {
+  async loadContacts() {
     const gun = this.gun;
     const contactsList = this.contactsList;
     const loadedContacts = {};
-    const emitter = new EventEmitter();
     gun
       .user()
       .get('contacts')
       .not((key) => {
-        cb(contactsList);
+        this.emitter.emit('contacts', contactsList);
       });
     gun
       .user()
       .get('contacts')
       .on((contacts) => {
-        if (!contacts) return;
+        if (!contacts) {
+          return;
+        }
         Object.keys(contacts).forEach((pubKey) => {
-          if (pubKey === '_' || pubKey === 'null') return;
+          if (pubKey === '_' || pubKey === 'null') {
+            return;
+          }
           gun
             .user()
             .get('contacts')
@@ -285,16 +307,16 @@ export default class GunChat {
                       newCount += 1;
                     });
                     contactsList[contactIndex].notifCount = newCount;
-                    cb(contactsList);
+                    this.emitter.emit('contacts', contactsList);
                   });
               }
-              cb(contactsList);
+              this.emitter.emit('contacts', contactsList);
             });
         });
       });
   }
 
-  async loadContactInvites(cb: (invites: Contact[]) => void) {
+  async loadContactInvites() {
     if (!this.gun.user().is) {
       return;
     }
@@ -306,7 +328,7 @@ export default class GunChat {
       .get('invites')
       .get('contacts')
       .not((key) => {
-        cb(invitesList);
+        this.emitter.emit('contactInvites', invitesList);
       });
     gun
       .get(gun.user()._.sea.pub)
@@ -345,7 +367,7 @@ export default class GunChat {
                   alias: contact.alias,
                 });
               }
-              cb(invitesList);
+              this.emitter.emit('contactInvites', invitesList);
             });
         });
       });
@@ -442,11 +464,7 @@ export default class GunChat {
       );
   }
 
-  async loadMessagesOfContact(
-    pubKey: string,
-    publicName: string,
-    cb: (msgs: Message[]) => void,
-  ) {
+  async loadMessagesOfContact(pubKey: string, publicName: string) {
     const gun = this.gun;
     this.activeContact = pubKey;
     this.activeChannel = null;
@@ -460,7 +478,7 @@ export default class GunChat {
     }
     async function loadMsgsOf(path, name) {
       path.not((key) => {
-        cb(loadedMsgsList);
+        this.emitter.emit('contactMessages', loadedMsgsList);
       });
       path.on((msgs) => {
         if (!msgs) return;
@@ -504,7 +522,7 @@ export default class GunChat {
               .get('new')
               .get(msgData.time)
               .put('disabled');
-            cb(loadedMsgsList);
+            this.emitter.emit('contactMessages', loadedMsgsList);
           });
         });
       });
@@ -555,7 +573,7 @@ export default class GunChat {
     gun.user().get('pchannel').get(channel.key).put({ disabled: true });
   }
 
-  async loadChannels(cb: (channels: Channel[]) => void) {
+  async loadChannels() {
     const gun = this.gun;
     const loadedChannels = {};
     const loadedChannelsList = this.channelsList;
@@ -563,15 +581,19 @@ export default class GunChat {
       .user()
       .get('pchannel')
       .not((key) => {
-        cb(loadedChannelsList);
+        this.emitter.emit('channels', loadedChannelsList);
       });
     gun
       .user()
       .get('pchannel')
       .on(async (channels) => {
-        if (!channels) return;
+        if (!channels) {
+          return;
+        }
         Object.keys(channels).forEach(async (channelKey) => {
-          if (channelKey === '_' || loadedChannels[channelKey]) return;
+          if (channelKey === '_' || loadedChannels[channelKey]) {
+            return;
+          }
           (Gun.SEA as any).secret(channelKey, gun.user()._.sea, (sec) => {
             gun
               .user()
@@ -593,7 +615,7 @@ export default class GunChat {
                     .indexOf(channelKey);
                   loadedChannelsList.splice(index, 1);
                   loadedChannels[channelKey] = false;
-                  cb(loadedChannelsList);
+                  this.emitter.emit('channels', loadedChannelsList);
                 } else if (
                   !channel.disabled &&
                   channel.name &&
@@ -618,7 +640,7 @@ export default class GunChat {
                         peers: loadedPeers,
                         pair,
                       });
-                      cb(loadedChannelsList);
+                      this.emitter.emit('channels', loadedChannelsList);
                       Object.keys(peers).forEach((pubKey) => {
                         if (pubKey === '_' || loadedPeers[pubKey]) return;
                         gun
@@ -638,7 +660,7 @@ export default class GunChat {
                             loadedChannelsList[
                               loadedChannelIndex
                             ].peers = loadedPeers;
-                            cb(loadedChannelsList);
+                            this.emitter.emit('channels', loadedChannelsList);
                           });
                       });
                       gun
@@ -666,7 +688,7 @@ export default class GunChat {
                               loadedChannelIndex
                             ].notifCount = newCount;
                           }
-                          cb(loadedChannelsList);
+                          this.emitter.emit('channels', loadedChannelsList);
                         });
                     });
                 }
@@ -731,7 +753,7 @@ export default class GunChat {
       );
   }
 
-  async loadChannelInvites(cb: (invites: Channel[]) => void) {
+  async loadChannelInvites() {
     if (!this.gun.user().is) {
       return;
     }
@@ -743,7 +765,7 @@ export default class GunChat {
       .get('invites')
       .get('pchannel')
       .not((key) => {
-        cb(loadedInvitesList);
+        this.emitter.emit('channelInvites', loadedInvitesList);
       });
     gun
       .get(gun.user()._.sea.pub)
@@ -797,7 +819,7 @@ export default class GunChat {
                   channel.key = channelKey;
                   loadedInvitesList.push(channel);
                 }
-                cb(loadedInvitesList);
+                this.emitter.emit('channelInvites', loadedInvitesList);
               });
             });
         });
@@ -953,10 +975,7 @@ export default class GunChat {
     });
   }
 
-  async loadMessagesOfChannel(
-    channel: Channel,
-    cb: (messages: Message[]) => void,
-  ) {
+  async loadMessagesOfChannel(channel: Channel) {
     const gun = this.gun;
     this.activeChannel = channel.key;
     this.activeContact = null;
@@ -967,7 +986,7 @@ export default class GunChat {
     const channelSec = await (Gun.SEA as any).secret(channel.key, channel.pair);
     async function loadMsgsOf(path, name) {
       path.not((key) => {
-        cb(loadedMsgsList);
+        this.emitter.emit('channelMessages', loadedMsgsList);
       });
       path.on((peerMsgs) => {
         if (!peerMsgs) return;
@@ -1054,7 +1073,7 @@ export default class GunChat {
               .get('new')
               .get(msgData.time)
               .put('disabled');
-            cb(loadedMsgsList);
+            this.emitter.emit('channelMessages', loadedMsgsList);
           });
         });
       });
@@ -1162,7 +1181,7 @@ export default class GunChat {
       .put({ disabled: true });
   }
 
-  async loadAnnouncements(cb: (announcements: Announcement[]) => void) {
+  async loadAnnouncements() {
     const gun = this.gun;
     const loadedAnnouncements = {};
     const loadedAnnouncementsList = this.announcementsList;
@@ -1170,7 +1189,7 @@ export default class GunChat {
       .user()
       .get('announcement')
       .not((key) => {
-        cb(loadedAnnouncementsList);
+        this.emitter.emit('announcements', loadedAnnouncementsList);
       });
     gun
       .user()
@@ -1204,7 +1223,7 @@ export default class GunChat {
                     .indexOf(announcementKey);
                   loadedAnnouncementsList.splice(index, 1);
                   loadedAnnouncements[announcementKey] = false;
-                  cb(loadedAnnouncementsList);
+                  this.emitter.emit('announcements', loadedAnnouncementsList);
                 } else if (
                   !announcement.disabled &&
                   announcement.name &&
@@ -1246,7 +1265,10 @@ export default class GunChat {
                               admins: loadedAdmins,
                               pair,
                             });
-                            cb(loadedAnnouncementsList);
+                            this.emitter.emit(
+                              'announcements',
+                              loadedAnnouncementsList,
+                            );
                           }
                           if (typeof loadedAnnouncementIndex === 'undefined')
                             return;
@@ -1269,7 +1291,10 @@ export default class GunChat {
                                 loadedAnnouncementsList[
                                   loadedAnnouncementIndex
                                 ].peers = loadedPeers;
-                                cb(loadedAnnouncementsList);
+                                this.emitter.emit(
+                                  'announcements',
+                                  loadedAnnouncementsList,
+                                );
                               });
                           });
                           Object.keys(admins).forEach((pubKey) => {
@@ -1287,7 +1312,10 @@ export default class GunChat {
                                 loadedAnnouncementsList[
                                   loadedAnnouncementIndex
                                 ].admins = loadedAdmins;
-                                cb(loadedAnnouncementsList);
+                                this.emitter.emit(
+                                  'announcements',
+                                  loadedAnnouncementsList,
+                                );
                               });
                           });
                           gun
@@ -1317,7 +1345,10 @@ export default class GunChat {
                                   loadedAnnouncementIndex
                                 ].notifCount = newCount;
                               }
-                              cb(loadedAnnouncementsList);
+                              this.emitter.emit(
+                                'announcements',
+                                loadedAnnouncementsList,
+                              );
                             });
                         });
                     });
@@ -1388,7 +1419,7 @@ export default class GunChat {
       );
   }
 
-  async loadAnnouncementInvites(cb: (invites: Announcement[]) => void) {
+  async loadAnnouncementInvites() {
     if (!this.gun.user().is) {
       return;
     }
@@ -1400,7 +1431,7 @@ export default class GunChat {
       .get('invites')
       .get('announcement')
       .not((key) => {
-        cb(loadedInvitesList);
+        this.emitter.emit('announcementInvites', loadedInvitesList);
       });
     gun
       .get(gun.user()._.sea.pub)
@@ -1465,7 +1496,7 @@ export default class GunChat {
                   announcement.key = announcementKey;
                   loadedInvitesList.push(announcement);
                 }
-                cb(loadedInvitesList);
+                this.emitter.emit('announcementInvites', loadedInvitesList);
               });
             });
         });
@@ -1579,7 +1610,9 @@ export default class GunChat {
       peerName: string;
     },
   ) {
-    if (!invite) return;
+    if (!invite) {
+      return;
+    }
     const gun = this.gun;
     gun
       .get(gun.user()._.sea.pub)
@@ -1661,10 +1694,7 @@ export default class GunChat {
     }
   }
 
-  async loadMessagesOfAnnouncement(
-    announcement: Announcement,
-    cb: (msgs: Message[]) => void,
-  ) {
+  async loadMessagesOfAnnouncement(announcement: Announcement) {
     const gun = this.gun;
     this.activeAnnouncement = announcement.key;
     this.activeContact = null;
@@ -1678,7 +1708,7 @@ export default class GunChat {
     );
     async function loadMsgsOf(path, name) {
       path.not((key) => {
-        cb(loadedMsgsList);
+        this.emitter.emit('announcementMessages', loadedMsgsList);
       });
       path.on((peerMsgs) => {
         if (!peerMsgs) return;
@@ -1777,7 +1807,7 @@ export default class GunChat {
                 peerInfo: msgData.peerInfo,
               });
               loadedMsgsList.sort((a, b) => a.time - b.time);
-              cb(loadedMsgsList);
+              this.emitter.emit('announcementMessages', loadedMsgsList);
             }
             gun
               .get('announcement')
