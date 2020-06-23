@@ -5,7 +5,10 @@ import { EventEmitter } from 'events';
 
 (Gun as any).SEA = Sea;
 
-interface Admin {}
+interface Admin {
+  pubKey: string;
+  name: string;
+}
 
 interface Contact {
   pubKey: string;
@@ -27,7 +30,7 @@ interface Peers {
 }
 
 interface Announcement extends Channel {
-  admins: { [pubKey: string]: Admin };
+  admins: { [pubKey: string]: Admin | 'disabled' };
   owner: string;
 }
 
@@ -233,7 +236,7 @@ export default class UnstoppableChat {
     });
   }
 
-  async removeContact(pubKey: string) {
+  removeContact(pubKey: string) {
     const gun = this.gun;
     gun.user().get('contacts').get(pubKey).put({ disabled: true });
   }
@@ -561,7 +564,7 @@ export default class UnstoppableChat {
       );
   }
 
-  async leaveChannel(channel: Channel) {
+  leaveChannel(channel: Channel) {
     const gun = this.gun;
     const leaveMsg = `${this.publicName} has left the chat.`;
     this.sendMessageToChannel(channel, leaveMsg, {
@@ -1165,7 +1168,7 @@ export default class UnstoppableChat {
       );
   }
 
-  async leaveAnnouncement(announcement: Announcement) {
+  leaveAnnouncement(announcement: Announcement) {
     const gun = this.gun;
     const leaveMsg = `${this.publicName} has left the chat.`;
     this.sendMessageToAnnouncement(announcement, leaveMsg, {
@@ -1628,7 +1631,7 @@ export default class UnstoppableChat {
     msg: string,
     peerInfo: {
       pubKey: string;
-      alias: string;
+      alias?: string;
       name: string;
       action: string;
     },
@@ -1863,6 +1866,24 @@ export default class UnstoppableChat {
             loadMsgsOf(peerAnnouncementChatPath, peer.name);
           }
         });
+      });
+  }
+  async addAdminToAnnouncement(announcement: Announcement, newAdmin: Admin) {
+    const gun = this.gun;
+    gun
+      .user()
+      .get('announcement')
+      .get(announcement.key)
+      .get('owner')
+      .once((ownerPub) => {
+        if (gun.user().is.pub === ownerPub) {
+          let newAdminMsg = `${newAdmin.name} has been made an admin.`;
+          this.sendMessageToAnnouncement(announcement, newAdminMsg, {
+            pubKey: newAdmin.pubKey,
+            name: newAdmin.name,
+            action: 'newAdmin',
+          });
+        }
       });
   }
 }
