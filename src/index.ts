@@ -525,7 +525,7 @@ export default class UnstoppableChat {
               .get('new')
               .get(msgData.time)
               .put('disabled');
-            this.emitter.emit('contactMessages', loadedMsgsList);
+            emitter.emit('contactMessages', loadedMsgsList);
           });
         });
       });
