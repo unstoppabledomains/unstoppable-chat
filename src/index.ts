@@ -335,9 +335,7 @@ export default class UnstoppableChat {
       });
     return {
       on: (e: 'contacts', cb: (param: Events['contacts']) => void) => {
-        emitter.on(e, (param) => {
-          cb(param);
-        });
+        emitter.on(e, cb);
       },
     };
   }
@@ -404,9 +402,7 @@ export default class UnstoppableChat {
         e: 'contactInvites',
         cb: (param: Events['contactInvites']) => void,
       ) => {
-        emitter.on(e, (param) => {
-          cb(param);
-        });
+        emitter.on(e, cb);
       },
     };
   }
@@ -577,9 +573,7 @@ export default class UnstoppableChat {
         e: 'contactMessages',
         cb: (param: Events['contactMessages']) => void,
       ) => {
-        emitter.on(e, (param) => {
-          cb(param);
-        });
+        emitter.on(e, cb);
       },
     };
   }
@@ -761,9 +755,7 @@ export default class UnstoppableChat {
       });
     return {
       on: (e: 'channels', cb: (param: Events['channels']) => void) => {
-        emitter.on(e, (param) => {
-          cb(param);
-        });
+        emitter.on(e, cb);
       },
     };
   }
@@ -900,9 +892,7 @@ export default class UnstoppableChat {
         e: 'channelInvites',
         cb: (param: Events['channelInvites']) => void,
       ) => {
-        emitter.on(e, (param) => {
-          cb(param);
-        });
+        emitter.on(e, cb);
       },
     };
   }
@@ -1212,9 +1202,7 @@ export default class UnstoppableChat {
         e: 'channelMessages',
         cb: (param: Events['channelMessages']) => void,
       ) => {
-        emitter.on(e, (param) => {
-          cb(param);
-        });
+        emitter.on(e, cb);
       },
     };
   }
@@ -1473,9 +1461,7 @@ export default class UnstoppableChat {
         e: 'announcements',
         cb: (param: Events['announcements']) => void,
       ) => {
-        emitter.on(e, (param) => {
-          cb(param);
-        });
+        emitter.on(e, cb);
       },
     };
   }
@@ -1628,9 +1614,7 @@ export default class UnstoppableChat {
         e: 'announcementInvites',
         cb: (param: Events['announcementInvites']) => void,
       ) => {
-        emitter.on(e, (param) => {
-          cb(param);
-        });
+        emitter.on(e, cb);
       },
     };
   }
@@ -2002,9 +1986,7 @@ export default class UnstoppableChat {
         e: 'announcementMessages',
         cb: (param: Events['announcementMessages']) => void,
       ) => {
-        emitter.on(e, (param) => {
-          cb(param);
-        });
+        emitter.on(e, cb);
       },
     };
   }
