@@ -98,6 +98,10 @@ export default class UnstoppableChat {
     this.emitter = new EventEmitter();
   }
 
+  on<K extends keyof Events>(s: K, listener: (v: Events[K]) => void) {
+    this.emitter.on(s, listener);
+  }
+
   async validatePubKeyFromUsername(
     username: string,
     pubKey: string,
