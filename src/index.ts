@@ -81,7 +81,6 @@ export default class UnstoppableChat {
   activeContact: string | null;
   activeChannel: string | null;
   activeAnnouncement: string | null;
-  emitter: TypedEventEmitter<Events>;
 
   constructor(superpeers: string[]) {
     this.gun = new Gun(superpeers);
@@ -95,11 +94,6 @@ export default class UnstoppableChat {
     this.activeContact = null;
     this.activeChannel = null;
     this.activeAnnouncement = null;
-    this.emitter = new EventEmitter();
-  }
-
-  on<K extends keyof Events>(s: K, listener: (v: Events[K]) => void) {
-    this.emitter.on(s, listener);
   }
 
   async validatePubKeyFromUsername(
@@ -143,7 +137,9 @@ export default class UnstoppableChat {
       .user()
       .get('pchat')
       .once((pubKeys) => {
-        if (!pubKeys) return;
+        if (!pubKeys) {
+          return;
+        }
         Object.keys(pubKeys).forEach((pubKey) => {
           gun.user().get('pchat').get(pubKey).put({ disabled: true });
         });
@@ -152,7 +148,9 @@ export default class UnstoppableChat {
       .user()
       .get('contacts')
       .once((pubKeys) => {
-        if (!pubKeys) return;
+        if (!pubKeys) {
+          return;
+        }
         Object.keys(pubKeys).forEach((pubKey) => {
           gun.user().get('contacts').get(pubKey).put({ disabled: true });
         });
@@ -161,7 +159,9 @@ export default class UnstoppableChat {
       .user()
       .get('pchannel')
       .once((chanKeys) => {
-        if (!chanKeys) return;
+        if (!chanKeys) {
+          return;
+        }
         Object.keys(chanKeys).forEach((chanKey) => {
           gun.user().get('pchannel').get(chanKey).put({ disabled: true });
         });
@@ -171,7 +171,9 @@ export default class UnstoppableChat {
       .get('invites')
       .get('contacts')
       .once((pubKeys) => {
-        if (!pubKeys) return;
+        if (!pubKeys) {
+          return;
+        }
         Object.keys(pubKeys).forEach((pubKey) => {
           gun
             .get(gun.user()._.sea.pub)
@@ -186,7 +188,9 @@ export default class UnstoppableChat {
       .get('invites')
       .get('pchannel')
       .once((pubKeys) => {
-        if (!pubKeys) return;
+        if (!pubKeys) {
+          return;
+        }
         Object.keys(pubKeys).forEach((pubKey) => {
           gun
             .get(gun.user()._.sea.pub)
@@ -194,7 +198,9 @@ export default class UnstoppableChat {
             .get('pchannel')
             .get(pubKey)
             .once((chanKeys) => {
-              if (!chanKeys) return;
+              if (!chanKeys) {
+                return;
+              }
               Object.keys(chanKeys).forEach((chanKey) => {
                 gun
                   .get(gun.user()._.sea.pub)
@@ -211,7 +217,9 @@ export default class UnstoppableChat {
       .get('pchat')
       .get(gun.user().is.pub)
       .once((pubKeys) => {
-        if (!pubKeys) return;
+        if (!pubKeys) {
+          return;
+        }
         Object.keys(pubKeys).forEach((pubKey) => {
           gun.get('pchat').get(gun.user().is.pub).get(pubKey).put('disabled');
         });
@@ -249,11 +257,12 @@ export default class UnstoppableChat {
     const gun = this.gun;
     const contactsList = this.contactsList;
     const loadedContacts = {};
+    const emitter = new EventEmitter();
     gun
       .user()
       .get('contacts')
       .not((key) => {
-        this.emitter.emit('contacts', contactsList);
+        emitter.emit('contacts', contactsList);
       });
     gun
       .user()
@@ -301,7 +310,9 @@ export default class UnstoppableChat {
                   .get(contact.pubKey)
                   .get('new')
                   .on((newMsgs) => {
-                    if (!newMsgs) return;
+                    if (!newMsgs) {
+                      return;
+                    }
                     let newCount = 0;
                     Object.keys(newMsgs).forEach((time) => {
                       if (
@@ -309,18 +320,26 @@ export default class UnstoppableChat {
                         time === 'disabled' ||
                         !newMsgs[time] ||
                         newMsgs[time] === 'disabled'
-                      )
+                      ) {
                         return;
+                      }
                       newCount += 1;
                     });
                     contactsList[contactIndex].notifCount = newCount;
-                    this.emitter.emit('contacts', contactsList);
+                    emitter.emit('contacts', contactsList);
                   });
               }
-              this.emitter.emit('contacts', contactsList);
+              emitter.emit('contacts', contactsList);
             });
         });
       });
+    return {
+      on: (e: 'contacts', cb) => {
+        emitter.on(e, (param) => {
+          cb(param);
+        });
+      },
+    };
   }
 
   async loadContactInvites() {
@@ -330,12 +349,13 @@ export default class UnstoppableChat {
     const gun = this.gun;
     const invitesList = this.contactInvitesList;
     const loadedInvites = {};
+    const emitter = new EventEmitter();
     gun
       .get(gun.user()._.sea.pub)
       .get('invites')
       .get('contacts')
       .not((key) => {
-        this.emitter.emit('contactInvites', invitesList);
+        emitter.emit('contactInvites', invitesList);
       });
     gun
       .get(gun.user()._.sea.pub)
@@ -356,8 +376,9 @@ export default class UnstoppableChat {
                   contact.name &&
                   !contact.disabled &&
                   loadedInvites[contact.pubKey])
-              )
+              ) {
                 return;
+              }
               if (contact.disabled && loadedInvites[pubKey]) {
                 const index = invitesList.map((c) => c.pubKey).indexOf(pubKey);
                 invitesList.splice(index, 1);
@@ -374,10 +395,17 @@ export default class UnstoppableChat {
                   alias: contact.alias,
                 });
               }
-              this.emitter.emit('contactInvites', invitesList);
+              emitter.emit('contactInvites', invitesList);
             });
         });
       });
+    return {
+      on: (e: 'contactInvites', cb) => {
+        emitter.on(e, (param) => {
+          cb(param);
+        });
+      },
+    };
   }
 
   async acceptContactInvite(
@@ -480,12 +508,13 @@ export default class UnstoppableChat {
     const loadedMsgsList: Message[] = [];
     const otherPeer = await gun.user(pubKey);
     let otherPeerEpub = otherPeer.epub;
+    const emitter = new EventEmitter();
     if (otherPeer.epub[2] === ':') {
       otherPeerEpub = JSON.parse(otherPeer.epub)[':'];
     }
-    async function loadMsgsOf(path, name, emitter) {
+    async function loadMsgsOf(path, name, passedEmitter) {
       path.not((key) => {
-        emitter.emit('contactMessages', loadedMsgsList);
+        passedEmitter.emit('contactMessages', loadedMsgsList);
       });
       path.on((msgs) => {
         if (!msgs) return;
@@ -529,21 +558,24 @@ export default class UnstoppableChat {
               .get('new')
               .get(msgData.time)
               .put('disabled');
-            emitter.emit('contactMessages', loadedMsgsList);
+            passedEmitter.emit('contactMessages', loadedMsgsList);
           });
         });
       });
     }
-    loadMsgsOf(
-      gun.user().get('pchat').get(pubKey),
-      this.publicName,
-      this.emitter,
-    );
+    loadMsgsOf(gun.user().get('pchat').get(pubKey), this.publicName, emitter);
     loadMsgsOf(
       gun.user(pubKey).get('pchat').get(gun.user()._.sea.pub),
       publicName,
-      this.emitter,
+      emitter,
     );
+    return {
+      on: (e: 'contactMessages', cb) => {
+        emitter.on(e, (param) => {
+          cb(param);
+        });
+      },
+    };
   }
 
   async createChannel(channelName: string) {
@@ -601,11 +633,12 @@ export default class UnstoppableChat {
     const gun = this.gun;
     const loadedChannels = {};
     const loadedChannelsList = this.channelsList;
+    const emitter = new EventEmitter();
     gun
       .user()
       .get('pchannel')
       .not((key) => {
-        this.emitter.emit('channels', loadedChannelsList);
+        emitter.emit('channels', loadedChannelsList);
       });
     gun
       .user()
@@ -639,7 +672,7 @@ export default class UnstoppableChat {
                     .indexOf(channelKey);
                   loadedChannelsList.splice(index, 1);
                   loadedChannels[channelKey] = false;
-                  this.emitter.emit('channels', loadedChannelsList);
+                  emitter.emit('channels', loadedChannelsList);
                 } else if (
                   !channel.disabled &&
                   channel.name &&
@@ -664,7 +697,7 @@ export default class UnstoppableChat {
                         peers: loadedPeers,
                         pair,
                       });
-                      this.emitter.emit('channels', loadedChannelsList);
+                      emitter.emit('channels', loadedChannelsList);
                       Object.keys(peers).forEach((pubKey) => {
                         if (pubKey === '_' || loadedPeers[pubKey]) return;
                         gun
@@ -684,7 +717,7 @@ export default class UnstoppableChat {
                             loadedChannelsList[
                               loadedChannelIndex
                             ].peers = loadedPeers;
-                            this.emitter.emit('channels', loadedChannelsList);
+                            emitter.emit('channels', loadedChannelsList);
                           });
                       });
                       gun
@@ -712,7 +745,7 @@ export default class UnstoppableChat {
                               loadedChannelIndex
                             ].notifCount = newCount;
                           }
-                          this.emitter.emit('channels', loadedChannelsList);
+                          emitter.emit('channels', loadedChannelsList);
                         });
                     });
                 }
@@ -720,6 +753,13 @@ export default class UnstoppableChat {
           });
         });
       });
+    return {
+      on: (e: 'channels', cb: (param: Events['channels']) => void) => {
+        emitter.on(e, (param) => {
+          cb(param);
+        });
+      },
+    };
   }
 
   async inviteToChannel(
@@ -784,12 +824,13 @@ export default class UnstoppableChat {
     const gun = this.gun;
     const loadedInvites = {};
     const loadedInvitesList = this.channelInvitesList;
+    const emitter = new EventEmitter();
     gun
       .get(gun.user()._.sea.pub)
       .get('invites')
       .get('pchannel')
       .not((key) => {
-        this.emitter.emit('channelInvites', loadedInvitesList);
+        emitter.emit('channelInvites', loadedInvitesList);
       });
     gun
       .get(gun.user()._.sea.pub)
@@ -843,11 +884,21 @@ export default class UnstoppableChat {
                   channel.key = channelKey;
                   loadedInvitesList.push(channel);
                 }
-                this.emitter.emit('channelInvites', loadedInvitesList);
+                emitter.emit('channelInvites', loadedInvitesList);
               });
             });
         });
       });
+    return {
+      on: (
+        e: 'channelInvites',
+        cb: (param: Events['channelInvites']) => void,
+      ) => {
+        emitter.on(e, (param) => {
+          cb(param);
+        });
+      },
+    };
   }
 
   async acceptChannelInvite(
@@ -898,9 +949,13 @@ export default class UnstoppableChat {
     });
     const loadedPeers = {};
     Object.keys(invite.peers).forEach((pubKey) => {
-      if (pubKey === '_') return;
+      if (pubKey === '_') {
+        return;
+      }
       const peer = invite.peers[pubKey];
-      if (loadedPeers[pubKey] || !peer || peer.disabled) return;
+      if (loadedPeers[pubKey] || !peer || peer.disabled) {
+        return;
+      }
       loadedPeers[pubKey] = pubKey;
       gun
         .user()
@@ -1008,9 +1063,10 @@ export default class UnstoppableChat {
     const loadedMsgsList: Message[] = [];
     const loadedMsgs = {};
     const channelSec = await (Gun.SEA as any).secret(channel.key, channel.pair);
-    async function loadMsgsOf(path, name, emitter) {
+    const emitter = new EventEmitter();
+    async function loadMsgsOf(path, name, passedEmitter) {
       path.not((key) => {
-        emitter.emit('channelMessages', loadedMsgsList);
+        passedEmitter.emit('channelMessages', loadedMsgsList);
       });
       path.on((peerMsgs) => {
         if (!peerMsgs) return;
@@ -1097,7 +1153,7 @@ export default class UnstoppableChat {
               .get('new')
               .get(msgData.time)
               .put('disabled');
-            emitter.emit('channelMessages', loadedMsgsList);
+            passedEmitter.emit('channelMessages', loadedMsgsList);
           });
         });
       });
@@ -1141,10 +1197,20 @@ export default class UnstoppableChat {
           else if (!peer.disabled && peer.name && !loadedPeers[pubKey]) {
             loadedPeers[pubKey] = true;
             channel.peers[pubKey] = peer;
-            loadMsgsOf(peerChannelChatPath, peer.name, this.emitter);
+            loadMsgsOf(peerChannelChatPath, peer.name, emitter);
           }
         });
       });
+    return {
+      on: (
+        e: 'channelMessages',
+        cb: (param: Events['channelMessages']) => void,
+      ) => {
+        emitter.on(e, (param) => {
+          cb(param);
+        });
+      },
+    };
   }
 
   async createAnnouncement(announcementName: string) {
@@ -1223,11 +1289,12 @@ export default class UnstoppableChat {
     const gun = this.gun;
     const loadedAnnouncements = {};
     const loadedAnnouncementsList = this.announcementsList;
+    const emitter = new EventEmitter();
     gun
       .user()
       .get('announcement')
       .not((key) => {
-        this.emitter.emit('announcements', loadedAnnouncementsList);
+        emitter.emit('announcements', loadedAnnouncementsList);
       });
     gun
       .user()
@@ -1261,7 +1328,7 @@ export default class UnstoppableChat {
                     .indexOf(announcementKey);
                   loadedAnnouncementsList.splice(index, 1);
                   loadedAnnouncements[announcementKey] = false;
-                  this.emitter.emit('announcements', loadedAnnouncementsList);
+                  emitter.emit('announcements', loadedAnnouncementsList);
                 } else if (
                   !announcement.disabled &&
                   announcement.name &&
@@ -1303,7 +1370,7 @@ export default class UnstoppableChat {
                               admins: loadedAdmins,
                               pair,
                             });
-                            this.emitter.emit(
+                            emitter.emit(
                               'announcements',
                               loadedAnnouncementsList,
                             );
@@ -1329,7 +1396,7 @@ export default class UnstoppableChat {
                                 loadedAnnouncementsList[
                                   loadedAnnouncementIndex
                                 ].peers = loadedPeers;
-                                this.emitter.emit(
+                                emitter.emit(
                                   'announcements',
                                   loadedAnnouncementsList,
                                 );
@@ -1350,7 +1417,7 @@ export default class UnstoppableChat {
                                 loadedAnnouncementsList[
                                   loadedAnnouncementIndex
                                 ].admins = loadedAdmins;
-                                this.emitter.emit(
+                                emitter.emit(
                                   'announcements',
                                   loadedAnnouncementsList,
                                 );
@@ -1383,7 +1450,7 @@ export default class UnstoppableChat {
                                   loadedAnnouncementIndex
                                 ].notifCount = newCount;
                               }
-                              this.emitter.emit(
+                              emitter.emit(
                                 'announcements',
                                 loadedAnnouncementsList,
                               );
@@ -1395,6 +1462,16 @@ export default class UnstoppableChat {
           });
         });
       });
+    return {
+      on: (
+        e: 'announcements',
+        cb: (param: Events['announcements']) => void,
+      ) => {
+        emitter.on(e, (param) => {
+          cb(param);
+        });
+      },
+    };
   }
 
   async inviteToAnnouncement(
@@ -1464,12 +1541,13 @@ export default class UnstoppableChat {
     const gun = this.gun;
     const loadedInvites = {};
     const loadedInvitesList = this.announcementInvitesList;
+    const emitter = new EventEmitter();
     gun
       .get(gun.user()._.sea.pub)
       .get('invites')
       .get('announcement')
       .not((key) => {
-        this.emitter.emit('announcementInvites', loadedInvitesList);
+        emitter.emit('announcementInvites', loadedInvitesList);
       });
     gun
       .get(gun.user()._.sea.pub)
@@ -1534,11 +1612,21 @@ export default class UnstoppableChat {
                   announcement.key = announcementKey;
                   loadedInvitesList.push(announcement);
                 }
-                this.emitter.emit('announcementInvites', loadedInvitesList);
+                emitter.emit('announcementInvites', loadedInvitesList);
               });
             });
         });
       });
+    return {
+      on: (
+        e: 'announcementInvites',
+        cb: (param: Events['announcementInvites']) => void,
+      ) => {
+        emitter.on(e, (param) => {
+          cb(param);
+        });
+      },
+    };
   }
 
   async acceptAnnouncementInvite(
@@ -1740,13 +1828,14 @@ export default class UnstoppableChat {
     const announcementKey = announcement.key;
     const loadedMsgsList: Message[] = [];
     const loadedMsgs = {};
+    const emitter = new EventEmitter();
     const announcementSec = await (Gun.SEA as any).secret(
       announcement.key,
       announcement.pair,
     );
-    async function loadMsgsOf(path, name, emitter) {
+    async function loadMsgsOf(path, name, passedEmitter) {
       path.not((key) => {
-        emitter.emit('announcementMessages', loadedMsgsList);
+        passedEmitter.emit('announcementMessages', loadedMsgsList);
       });
       path.on((peerMsgs) => {
         if (!peerMsgs) return;
@@ -1845,7 +1934,7 @@ export default class UnstoppableChat {
                 peerInfo: msgData.peerInfo,
               });
               loadedMsgsList.sort((a, b) => a.time - b.time);
-              emitter.emit('announcementMessages', loadedMsgsList);
+              passedEmitter.emit('announcementMessages', loadedMsgsList);
             }
             gun
               .get('announcement')
@@ -1898,10 +1987,20 @@ export default class UnstoppableChat {
           else if (!peer.disabled && peer.name && !loadedPeers[pubKey]) {
             loadedPeers[pubKey] = true;
             announcement.peers[pubKey] = peer;
-            loadMsgsOf(peerAnnouncementChatPath, peer.name, this.emitter);
+            loadMsgsOf(peerAnnouncementChatPath, peer.name, emitter);
           }
         });
       });
+    return {
+      on: (
+        e: 'announcementMessages',
+        cb: (param: Events['announcementMessages']) => void,
+      ) => {
+        emitter.on(e, (param) => {
+          cb(param);
+        });
+      },
+    };
   }
   async addAdminToAnnouncement(announcement: Announcement, newAdmin: Admin) {
     const gun = this.gun;
