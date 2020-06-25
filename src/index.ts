@@ -548,25 +548,37 @@ export default class UnstoppableChat {
     const channelKey = channelPair.epub;
     const sec = await (Gun.SEA as any).secret(channelKey, gun.user()._.sea);
     const encPair = await Gun.SEA.encrypt(JSON.stringify(channelPair), sec);
-    gun.user().get('pchannel').get(channelKey).put({
+    const channel = {
       pair: encPair,
       name: channelName,
       key: channelKey,
+      peers: {},
+    };
+    return new Promise((resolve) => {
+      gun
+        .user()
+        .get('pchannel')
+        .get(channelKey)
+        .put(channel, () => {
+          const userPeer = JSON.stringify({
+            alias: gun.user().is.alias,
+            name: this.publicName,
+            joined: true,
+            disabled: false,
+          });
+          gun
+            .user()
+            .get('pchannel')
+            .get(channelKey)
+            .get('peers')
+            .get(gun.user().is.pub)
+            .put(userPeer, () => {
+              channel.peers[gun.user().is.pub] = userPeer;
+              channel.pair = channelPair;
+              resolve(channel);
+            });
+        });
     });
-    gun
-      .user()
-      .get('pchannel')
-      .get(channelKey)
-      .get('peers')
-      .get(gun.user().is.pub)
-      .put(
-        JSON.stringify({
-          alias: gun.user().is.alias,
-          name: this.publicName,
-          joined: true,
-          disabled: false,
-        }),
-      );
   }
 
   leaveChannel(channel: Channel) {
@@ -1133,6 +1145,7 @@ export default class UnstoppableChat {
 
   async createAnnouncement(announcementName: string) {
     const gun = this.gun;
+    const publicName = this.publicName;
     const announcementPair = await (Gun.SEA as any).pair();
     const announcementKey = announcementPair.epub;
     const sec = await (Gun.SEA as any).secret(
@@ -1143,34 +1156,47 @@ export default class UnstoppableChat {
       JSON.stringify(announcementPair),
       sec,
     );
-    gun.user().get('announcement').get(announcementKey).put({
+    const announcement = {
       pair: encPair,
       name: announcementName,
       key: announcementKey,
       owner: gun.user()._.sea.pub,
+      peers: {},
+      admins: {},
+    };
+    return new Promise((resolve) => {
+      gun
+        .user()
+        .get('announcement')
+        .get(announcementKey)
+        .put(announcement, () => {
+          gun
+            .user()
+            .get('announcement')
+            .get(announcementKey)
+            .get('admins')
+            .get(gun.user().is.pub)
+            .put(this.publicName);
+          const userPeer = JSON.stringify({
+            alias: gun.user().is.alias,
+            name: this.publicName,
+            joined: true,
+            disabled: false,
+            pubKey: gun.user().is.pub,
+          });
+          gun
+            .user()
+            .get('announcement')
+            .get(announcementKey)
+            .get('peers')
+            .get(gun.user().is.pub)
+            .put(userPeer);
+          announcement.admins[gun.user().is.pub] = publicName;
+          announcement.peers[gun.user().is.pub] = userPeer;
+          announcement.pair = announcementPair;
+          resolve(announcement);
+        });
     });
-    gun
-      .user()
-      .get('announcement')
-      .get(announcementKey)
-      .get('admins')
-      .get(gun.user().is.pub)
-      .put(this.publicName);
-    gun
-      .user()
-      .get('announcement')
-      .get(announcementKey)
-      .get('peers')
-      .get(gun.user().is.pub)
-      .put(
-        JSON.stringify({
-          alias: gun.user().is.alias,
-          name: this.publicName,
-          joined: true,
-          disabled: false,
-          pubKey: gun.user().is.pub,
-        }),
-      );
   }
 
   leaveAnnouncement(announcement: Announcement) {
