@@ -341,9 +341,6 @@ export default class UnstoppableChat {
   }
 
   async loadContactInvites() {
-    if (!this.gun.user().is) {
-      return;
-    }
     const gun = this.gun;
     const invitesList = this.contactInvitesList;
     const loadedInvites = {};
@@ -816,9 +813,6 @@ export default class UnstoppableChat {
   }
 
   async loadChannelInvites() {
-    if (!this.gun.user().is) {
-      return;
-    }
     const gun = this.gun;
     const loadedInvites = {};
     const loadedInvitesList = this.channelInvitesList;
@@ -1527,9 +1521,6 @@ export default class UnstoppableChat {
   }
 
   async loadAnnouncementInvites() {
-    if (!this.gun.user().is) {
-      return;
-    }
     const gun = this.gun;
     const loadedInvites = {};
     const loadedInvitesList = this.announcementInvitesList;
