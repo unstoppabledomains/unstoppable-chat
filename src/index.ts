@@ -334,7 +334,7 @@ export default class UnstoppableChat {
         });
       });
     return {
-      on: (e: 'contacts', cb) => {
+      on: (e: 'contacts', cb: (param: Events['contacts']) => void) => {
         emitter.on(e, (param) => {
           cb(param);
         });
@@ -400,7 +400,10 @@ export default class UnstoppableChat {
         });
       });
     return {
-      on: (e: 'contactInvites', cb) => {
+      on: (
+        e: 'contactInvites',
+        cb: (param: Events['contactInvites']) => void,
+      ) => {
         emitter.on(e, (param) => {
           cb(param);
         });
@@ -570,7 +573,10 @@ export default class UnstoppableChat {
       emitter,
     );
     return {
-      on: (e: 'contactMessages', cb) => {
+      on: (
+        e: 'contactMessages',
+        cb: (param: Events['contactMessages']) => void,
+      ) => {
         emitter.on(e, (param) => {
           cb(param);
         });
