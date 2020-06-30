@@ -334,8 +334,8 @@ export default class UnstoppableChat {
         });
       });
     return {
-      on: (e: 'contacts', cb: (param: Events['contacts']) => void) => {
-        emitter.on(e, cb);
+      on: (cb: (param: Events['contacts']) => void) => {
+        emitter.on('contacts', cb);
       },
     };
   }
@@ -395,11 +395,8 @@ export default class UnstoppableChat {
         });
       });
     return {
-      on: (
-        e: 'contactInvites',
-        cb: (param: Events['contactInvites']) => void,
-      ) => {
-        emitter.on(e, cb);
+      on: (cb: (param: Events['contactInvites']) => void) => {
+        emitter.on('contactInvites', cb);
       },
     };
   }
@@ -566,11 +563,8 @@ export default class UnstoppableChat {
       emitter,
     );
     return {
-      on: (
-        e: 'contactMessages',
-        cb: (param: Events['contactMessages']) => void,
-      ) => {
-        emitter.on(e, cb);
+      on: (cb: (param: Events['contactMessages']) => void) => {
+        emitter.on('contactMessages', cb);
       },
     };
   }
@@ -751,8 +745,8 @@ export default class UnstoppableChat {
         });
       });
     return {
-      on: (e: 'channels', cb: (param: Events['channels']) => void) => {
-        emitter.on(e, cb);
+      on: (cb: (param: Events['channels']) => void) => {
+        emitter.on('channels', cb);
       },
     };
   }
@@ -882,11 +876,8 @@ export default class UnstoppableChat {
         });
       });
     return {
-      on: (
-        e: 'channelInvites',
-        cb: (param: Events['channelInvites']) => void,
-      ) => {
-        emitter.on(e, cb);
+      on: (cb: (param: Events['channelInvites']) => void) => {
+        emitter.on('channelInvites', cb);
       },
     };
   }
@@ -1192,11 +1183,8 @@ export default class UnstoppableChat {
         });
       });
     return {
-      on: (
-        e: 'channelMessages',
-        cb: (param: Events['channelMessages']) => void,
-      ) => {
-        emitter.on(e, cb);
+      on: (cb: (param: Events['channelMessages']) => void) => {
+        emitter.on('channelMessages', cb);
       },
     };
   }
@@ -1451,11 +1439,8 @@ export default class UnstoppableChat {
         });
       });
     return {
-      on: (
-        e: 'announcements',
-        cb: (param: Events['announcements']) => void,
-      ) => {
-        emitter.on(e, cb);
+      on: (cb: (param: Events['announcements']) => void) => {
+        emitter.on('announcements', cb);
       },
     };
   }
@@ -1601,11 +1586,8 @@ export default class UnstoppableChat {
         });
       });
     return {
-      on: (
-        e: 'announcementInvites',
-        cb: (param: Events['announcementInvites']) => void,
-      ) => {
-        emitter.on(e, cb);
+      on: (cb: (param: Events['announcementInvites']) => void) => {
+        emitter.on('announcementInvites', cb);
       },
     };
   }
@@ -1973,11 +1955,8 @@ export default class UnstoppableChat {
         });
       });
     return {
-      on: (
-        e: 'announcementMessages',
-        cb: (param: Events['announcementMessages']) => void,
-      ) => {
-        emitter.on(e, cb);
+      on: (cb: (param: Events['announcementMessages']) => void) => {
+        emitter.on('announcementMessages', cb);
       },
     };
   }
