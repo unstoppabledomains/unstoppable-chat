@@ -234,18 +234,23 @@ export default class UnstoppableChat {
   async addContact(username: string, pubKey: string, publicName: string) {
     const gun = this.gun;
     await this.validatePubKeyFromUsername(username, pubKey);
-    gun.user().get('contacts').get(pubKey).put({
-      pubKey,
-      alias: username,
-      name: publicName,
-      disabled: false,
-    });
     gun.get(pubKey).get('invites').get('contacts').get(gun.user().is.pub).put({
       pubKey: gun.user().is.pub,
       alias: gun.user().is.alias,
       name: this.publicName,
       disabled: false,
     });
+    const contact = {
+      pubKey,
+      alias: username,
+      name: publicName,
+      disabled: false
+    }
+    return new Promise((resolve) => {
+      gun.user().get('contacts').get(pubKey).put(contact, () => {
+        resolve(contact);
+      });
+    })
   }
 
   removeContact(pubKey: string) {
