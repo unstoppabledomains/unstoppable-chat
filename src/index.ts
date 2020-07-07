@@ -1272,75 +1272,82 @@ export default class UnstoppableChat {
       });
     }
     const loadedPeers = {};
-    if (channel.hash && !channel.isPrivate) {
-      gun.get(`#public/channels/0/${channel.key}/peers`).on((hashMap: any) => {
-        if (!hashMap || typeof hashMap !== 'object') return;
-        Object.keys(hashMap).forEach((hash) => {
-          if (hash === '_') return;
-          gun
-            .get(`#public/channels/0/${channel.key}/peers`)
-            .get(hash)
-            .on((peerStr: string) => {
-              const peer = JSON.parse(peerStr);
-              if (!peer || peer.disbled || loadedPeers[peer.pubKey]) return;
-              loadedPeers[peer.pubKey] = peer;
-              const peerChannelChatPath = gun
-                .user(peer.pubKey)
-                .get('pchannel')
-                .get(channelKey)
-                .get('chat');
-              channel.peers[peer.pubKey] = peer;
-              loadMsgsOf(peerChannelChatPath, peer.name, emitter);
-            });
-        });
-      });
-    } else {
-      gun
-        .user()
-        .get('pchannel')
-        .get(channel.key)
-        .get('peers')
-        .on((peers) => {
-          Object.keys(peers).forEach((pubKey) => {
-            if (
-              pubKey === '_' ||
-              !peers[pubKey] ||
-              typeof peers[pubKey] !== 'string'
-            )
-              return;
-            let peer;
-            if (peers[pubKey] !== 'disabled') {
-              peer = JSON.parse(peers[pubKey]);
-              if (typeof peer === 'string') {
-                peer = JSON.parse(peer);
-              }
-            } else if (peers[pubKey] === 'disabled' && loadedPeers[pubKey]) {
-              delete channel.peers[pubKey];
-              loadedPeers[pubKey] = false;
-              return;
-            }
-            const peerChannelChatPath = gun
-              .user(pubKey)
-              .get('pchannel')
-              .get(channelKey)
-              .get('chat');
-            if (
-              !peer ||
-              !peer.name ||
-              (peer.name && !peer.disabled && loadedPeers[pubKey])
-            )
-              return;
-            else if (!peer.disabled && peer.name && !loadedPeers[pubKey]) {
-              loadedPeers[pubKey] = true;
-              channel.peers[pubKey] = peer;
-              loadMsgsOf(peerChannelChatPath, peer.name, emitter);
-            }
-          });
-        });
-    }
     return {
       on: (cb: (param: Events['channelMessages']) => void) => {
         emitter.on('channelMessages', cb);
+        if (channel.hash && !channel.isPrivate) {
+          gun
+            .get(`#public/channels/0/${channel.key}/peers`)
+            .on((hashMap: any) => {
+              if (!hashMap || typeof hashMap !== 'object') return;
+              Object.keys(hashMap).forEach((hash) => {
+                if (hash === '_') return;
+                gun
+                  .get(`#public/channels/0/${channel.key}/peers`)
+                  .get(hash)
+                  .on((peerStr: string) => {
+                    const peer = JSON.parse(peerStr);
+                    if (!peer || peer.disbled || loadedPeers[peer.pubKey])
+                      return;
+                    loadedPeers[peer.pubKey] = peer;
+                    const peerChannelChatPath = gun
+                      .user(peer.pubKey)
+                      .get('pchannel')
+                      .get(channelKey)
+                      .get('chat');
+
+                    channel.peers[peer.pubKey] = peer;
+                    loadMsgsOf(peerChannelChatPath, peer.name, emitter);
+                  });
+              });
+            });
+        } else {
+          gun
+            .user()
+            .get('pchannel')
+            .get(channel.key)
+            .get('peers')
+            .on((peers) => {
+              Object.keys(peers).forEach((pubKey) => {
+                if (
+                  pubKey === '_' ||
+                  !peers[pubKey] ||
+                  typeof peers[pubKey] !== 'string'
+                )
+                  return;
+                let peer;
+                if (peers[pubKey] !== 'disabled') {
+                  peer = JSON.parse(peers[pubKey]);
+                  if (typeof peer === 'string') {
+                    peer = JSON.parse(peer);
+                  }
+                } else if (
+                  peers[pubKey] === 'disabled' &&
+                  loadedPeers[pubKey]
+                ) {
+                  delete channel.peers[pubKey];
+                  loadedPeers[pubKey] = false;
+                  return;
+                }
+                const peerChannelChatPath = gun
+                  .user(pubKey)
+                  .get('pchannel')
+                  .get(channelKey)
+                  .get('chat');
+                if (
+                  !peer ||
+                  !peer.name ||
+                  (peer.name && !peer.disabled && loadedPeers[pubKey])
+                )
+                  return;
+                else if (!peer.disabled && peer.name && !loadedPeers[pubKey]) {
+                  loadedPeers[pubKey] = true;
+                  channel.peers[pubKey] = peer;
+                  loadMsgsOf(peerChannelChatPath, peer.name, emitter);
+                }
+              });
+            });
+        }
       },
     };
   }
