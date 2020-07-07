@@ -250,13 +250,17 @@ export default class UnstoppableChat {
       pubKey,
       alias: username,
       name: publicName,
-      disabled: false
-    }
+      disabled: false,
+    };
     return new Promise((resolve) => {
-      gun.user().get('contacts').get(pubKey).put(contact, () => {
-        resolve(contact);
-      });
-    })
+      gun
+        .user()
+        .get('contacts')
+        .get(pubKey)
+        .put(contact, () => {
+          resolve(contact);
+        });
+    });
   }
 
   removeContact(pubKey: string) {
@@ -591,26 +595,39 @@ export default class UnstoppableChat {
       owner: gun.user().is.pub,
       peers: {},
       isPrivate: isPrivate,
-      hash: ''
-    }
-    if(isPrivate){
+      hash: '',
+    };
+    if (isPrivate) {
       const sec = await (Gun.SEA as any).secret(channelKey, gun.user()._.sea);
       const encPair = await Gun.SEA.encrypt(JSON.stringify(channelPair), sec);
       channel.pair = encPair;
-    }else{
-      const hash = await Gun.SEA.work(JSON.stringify(channel), null, undefined, {name: "SHA-256"});
-      if(!hash) return;
+    } else {
+      const hash = await Gun.SEA.work(
+        JSON.stringify(channel),
+        null,
+        undefined,
+        { name: 'SHA-256' },
+      );
+      if (!hash) return;
       gun.get('#public/channels/0').get(hash).put(JSON.stringify(channel));
-      if(!this.publicName) return;
-      const peerData: Peer =  {
+      if (!this.publicName) return;
+      const peerData: Peer = {
         alias: gun.user().is.alias,
         name: this.publicName,
         joined: true,
-        pubKey: gun.user().is.pub
+        pubKey: gun.user().is.pub,
       };
-      const peerHash = await Gun.SEA.work(JSON.stringify(peerData), null, undefined, {name: "SHA-256"});
-      if(!peerHash) return;
-      gun.get(`#public/channels/0/${channel.key}/peers`).get(peerHash).put(JSON.stringify(peerData));
+      const peerHash = await Gun.SEA.work(
+        JSON.stringify(peerData),
+        null,
+        undefined,
+        { name: 'SHA-256' },
+      );
+      if (!peerHash) return;
+      gun
+        .get(`#public/channels/0/${channel.key}/peers`)
+        .get(peerHash)
+        .put(JSON.stringify(peerData));
       channel.hash = hash;
       channel.peers[gun.user().is.pub] = peerData;
     }
@@ -712,7 +729,7 @@ export default class UnstoppableChat {
                       if (!peers || loadedChannels[channelKey]) return;
                       loadedChannels[channelKey] = true;
                       let pair = channel.pair;
-                      if(channel.isPrivate || !channel.hash){
+                      if (channel.isPrivate || !channel.hash) {
                         pair = await Gun.SEA.decrypt(channel.pair, sec);
                       }
                       const loadedChannelIndex = loadedChannelsList.length;
@@ -724,12 +741,14 @@ export default class UnstoppableChat {
                         peers: loadedPeers,
                         pair,
                         isPrivate: channel.isPrivate,
-                        hash : channel.hash,
-                        owner: channel.owner
+                        hash: channel.hash,
+                        owner: channel.owner,
                       });
                       emitter.emit('channels', loadedChannelsList);
                       Object.keys(peers).forEach((pubKey) => {
-                        if (pubKey === '_' || loadedPeers[pubKey]) return;
+                        if (pubKey === '_' || loadedPeers[pubKey]) {
+                          return;
+                        }
                         gun
                           .user()
                           .get('pchannel')
@@ -741,8 +760,9 @@ export default class UnstoppableChat {
                               !peerData ||
                               peerData.disabled ||
                               loadedPeers[pubKey]
-                            )
+                            ) {
                               return;
+                            }
                             loadedPeers[pubKey] = peerData;
                             loadedChannelsList[
                               loadedChannelIndex
@@ -790,47 +810,62 @@ export default class UnstoppableChat {
     };
   }
 
-  async loadPublicChannels() {
+  loadPublicChannels() {
     const gun = this.gun;
     const loadedChannels = {};
     const loadedChannelsList = this.publicChannelsList;
     const emitter = new EventEmitter();
-    gun.get('#public/channels/0').on((hashMap: any) => {
-      Object.keys(hashMap).forEach((hash: string) => {
-        if(hash === '_') return;
-        gun.get('#public/channels/0').get(hash).once((channelStr: string) => {
-          if(!channelStr) return;
-          const channel = JSON.parse(channelStr);
-          if(!channel || !channel.key || loadedChannels[channel.key]) return;
-          if(!channel.hash) channel.hash = hash;
-          loadedChannels[channel.key] = true;
-          loadedChannelsList.push(channel);
-          emitter.emit('publicChannels', loadedChannelsList);
-        })
-      })
-    })
+
     return {
       on: (cb: (param: Events['publicChannels']) => void) => {
         emitter.on('publicChannels', cb);
+        gun.get('#public/channels/0').on((hashMap: any) => {
+          Object.keys(hashMap).forEach((hash: string) => {
+            if (hash === '_') {
+              return;
+            }
+            gun
+              .get('#public/channels/0')
+              .get(hash)
+              .once((channelStr: string) => {
+                if (!channelStr) {
+                  return;
+                }
+                const channel = JSON.parse(channelStr);
+                if (!channel || !channel.key || loadedChannels[channel.key]) {
+                  return;
+                }
+                if (!channel.hash) channel.hash = hash;
+                loadedChannels[channel.key] = true;
+                loadedChannelsList.push(channel);
+                emitter.emit('publicChannels', loadedChannelsList);
+              });
+          });
+        });
       },
     };
-  };
+  }
 
-  async joinPublicChannel (publicChannel: Channel) {
+  async joinPublicChannel(publicChannel: Channel) {
     const gun = this.gun;
     const publicName = this.publicName;
     const pubKey = gun.user().is.pub;
-    if(!publicName || !pubKey || !publicChannel) return;
+    if (!publicName || !pubKey || !publicChannel) return;
     gun.user().get('pchannel').get(publicChannel.key).put(publicChannel);
-    const peerData: Peer =  {
+    const peerData: Peer = {
       alias: gun.user().is.alias,
       name: publicName,
       joined: true,
-      pubKey: pubKey
+      pubKey: pubKey,
     };
-    const hash = await Gun.SEA.work(JSON.stringify(peerData), null, undefined, {name: "SHA-256"});
-    if(!hash) return;
-    gun.get(`#public/channels/0/${publicChannel.key}/peers`).get(hash).put(JSON.stringify(peerData));
+    const hash = await Gun.SEA.work(JSON.stringify(peerData), null, undefined, {
+      name: 'SHA-256',
+    });
+    if (!hash) return;
+    gun
+      .get(`#public/channels/0/${publicChannel.key}/peers`)
+      .get(hash)
+      .put(JSON.stringify(peerData));
     publicChannel.peers = publicChannel.peers || {};
     publicChannel.peers[pubKey] = peerData;
   }
@@ -1078,7 +1113,7 @@ export default class UnstoppableChat {
       .get(channel.key)
       .get('chat');
     let msgToSend = msg;
-    if(channel.isPrivate || !channel.hash){
+    if (channel.isPrivate || !channel.hash) {
       const sec = await (Gun.SEA as any).secret(channel.key, channel.pair);
       const encMsg = await Gun.SEA.encrypt(msg, sec);
       msgToSend = encMsg;
@@ -1153,14 +1188,21 @@ export default class UnstoppableChat {
               msgData = JSON.parse(msgDataString);
               msgToLoad = msgData.msg;
             }
-            if (typeof msgData.msg === 'string' && (channel.isPrivate || !channel.hash)) {
+            if (
+              typeof msgData.msg === 'string' &&
+              (channel.isPrivate || !channel.hash)
+            ) {
               msgData.msg = JSON.parse(
                 msgData.msg.substr(3, msgData.msg.length),
               );
-              const channelSec = await (Gun.SEA as any).secret(channel.key, channel.pair);
+              const channelSec = await (Gun.SEA as any).secret(
+                channel.key,
+                channel.pair,
+              );
               msgToLoad = await Gun.SEA.decrypt(msgData.msg, channelSec);
             }
-            if (!msgData || !msgData.msg || !msgToLoad || !msgData.userPub) return;
+            if (!msgData || !msgData.msg || !msgToLoad || !msgData.userPub)
+              return;
             if (msgData.peerInfo) {
               if (typeof msgData.peerInfo === 'string') {
                 msgData.peerInfo = JSON.parse(msgData.peerInfo);
@@ -1230,68 +1272,71 @@ export default class UnstoppableChat {
       });
     }
     const loadedPeers = {};
-    if(channel.hash && !channel.isPrivate){
+    if (channel.hash && !channel.isPrivate) {
       gun.get(`#public/channels/0/${channel.key}/peers`).on((hashMap: any) => {
-        if(!hashMap || typeof hashMap !== 'object') return;
+        if (!hashMap || typeof hashMap !== 'object') return;
         Object.keys(hashMap).forEach((hash) => {
-          if(hash === '_') return;
-          gun.get(`#public/channels/0/${channel.key}/peers`).get(hash).on((peerStr: string) => {
-            const peer = JSON.parse(peerStr);
-            if(!peer || peer.disbled || loadedPeers[peer.pubKey]) return;
-            loadedPeers[peer.pubKey] = peer;
+          if (hash === '_') return;
+          gun
+            .get(`#public/channels/0/${channel.key}/peers`)
+            .get(hash)
+            .on((peerStr: string) => {
+              const peer = JSON.parse(peerStr);
+              if (!peer || peer.disbled || loadedPeers[peer.pubKey]) return;
+              loadedPeers[peer.pubKey] = peer;
+              const peerChannelChatPath = gun
+                .user(peer.pubKey)
+                .get('pchannel')
+                .get(channelKey)
+                .get('chat');
+              channel.peers[peer.pubKey] = peer;
+              loadMsgsOf(peerChannelChatPath, peer.name, emitter);
+            });
+        });
+      });
+    } else {
+      gun
+        .user()
+        .get('pchannel')
+        .get(channel.key)
+        .get('peers')
+        .on((peers) => {
+          Object.keys(peers).forEach((pubKey) => {
+            if (
+              pubKey === '_' ||
+              !peers[pubKey] ||
+              typeof peers[pubKey] !== 'string'
+            )
+              return;
+            let peer;
+            if (peers[pubKey] !== 'disabled') {
+              peer = JSON.parse(peers[pubKey]);
+              if (typeof peer === 'string') {
+                peer = JSON.parse(peer);
+              }
+            } else if (peers[pubKey] === 'disabled' && loadedPeers[pubKey]) {
+              delete channel.peers[pubKey];
+              loadedPeers[pubKey] = false;
+              return;
+            }
             const peerChannelChatPath = gun
-              .user(peer.pubKey)
+              .user(pubKey)
               .get('pchannel')
               .get(channelKey)
               .get('chat');
-            channel.peers[peer.pubKey] = peer;
-            loadMsgsOf(peerChannelChatPath, peer.name, emitter);
-          })
-        })
-      })
-    } else {
-      gun
-      .user()
-      .get('pchannel')
-      .get(channel.key)
-      .get('peers')
-      .on((peers) => {
-        Object.keys(peers).forEach((pubKey) => {
-          if (
-            pubKey === '_' ||
-            !peers[pubKey] ||
-            typeof peers[pubKey] !== 'string'
-          )
-            return;
-          let peer;
-          if (peers[pubKey] !== 'disabled') {
-            peer = JSON.parse(peers[pubKey]);
-            if (typeof peer === 'string') {
-              peer = JSON.parse(peer);
+            if (
+              !peer ||
+              !peer.name ||
+              (peer.name && !peer.disabled && loadedPeers[pubKey])
+            )
+              return;
+            else if (!peer.disabled && peer.name && !loadedPeers[pubKey]) {
+              loadedPeers[pubKey] = true;
+              channel.peers[pubKey] = peer;
+              loadMsgsOf(peerChannelChatPath, peer.name, emitter);
             }
-          } else if (peers[pubKey] === 'disabled' && loadedPeers[pubKey]) {
-            delete channel.peers[pubKey];
-            loadedPeers[pubKey] = false;
-            return;
-          }
-          const peerChannelChatPath = gun
-            .user(pubKey)
-            .get('pchannel')
-            .get(channelKey)
-            .get('chat');
-          if (
-            !peer ||
-            !peer.name ||
-            (peer.name && !peer.disabled && loadedPeers[pubKey])
-          )
-            return;
-          else if (!peer.disabled && peer.name && !loadedPeers[pubKey]) {
-            loadedPeers[pubKey] = true;
-            channel.peers[pubKey] = peer;
-            loadMsgsOf(peerChannelChatPath, peer.name, emitter);
-          }
+          });
         });
-      });
     }
     return {
       on: (cb: (param: Events['channelMessages']) => void) => {
