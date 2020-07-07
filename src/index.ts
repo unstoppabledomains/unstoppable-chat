@@ -813,6 +813,7 @@ export default class UnstoppableChat {
   loadPublicChannels() {
     const gun = this.gun;
     const loadedChannels = {};
+    this.publicChannelsList = [];
     const loadedChannelsList = this.publicChannelsList;
     const emitter = new EventEmitter();
 
