@@ -1,6 +1,7 @@
 import Gun from 'gun';
 import Sea from 'gun/sea';
 import 'gun/lib/not.js';
+
 import { EventEmitter } from 'events';
 
 (Gun as any).SEA = Sea;
