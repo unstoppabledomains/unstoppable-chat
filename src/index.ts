@@ -46,6 +46,7 @@ interface Channel {
   isPrivate?: boolean;
   hash?: string;
   owner?: string;
+  disabled?: boolean;
 }
 
 interface Message {
@@ -853,6 +854,10 @@ export default class UnstoppableChat {
     const publicName = this.publicName;
     const pubKey = gun.user().is.pub;
     if (!publicName || !pubKey || !publicChannel) return;
+    if(publicChannel.disabled) {
+      publicChannel.disabled = false
+    };
+    gun.user().get('pchannel').get(publicChannel.key).get("disabled").put(false);
     gun.user().get('pchannel').get(publicChannel.key).put(publicChannel);
     const peerData: Peer = {
       alias: gun.user().is.alias,
