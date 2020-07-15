@@ -7,7 +7,7 @@ A library for decentralized chat with blockchain domains and gundb
 You can use UnstoppableChat in a `<script>` tag from a
 [CDN](https://unpkg.com/browse/@unstoppabledomains/chat/build/index.js)
 
-# Architechture
+# Architecture
 
 Unstoppable Chat combines the technologies of blockchain domains and [GunDB](https://gun.eco/docs/).
 
