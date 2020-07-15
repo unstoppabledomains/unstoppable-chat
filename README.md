@@ -29,7 +29,7 @@ We recommend using the [unstoppabledomains resolution library](https://www.npmjs
 # Initialization
 
 ```javascript
-const GUNDB_SUPER_PEER = 'https://super2020.herokuapp.com/gun';
+const GUNDB_SUPER_PEER = 'https://unstoppable-superpeer.herokuapp.com/';
 
 const chat = new UnstoppableChat(GUNDB_SUPER_PEER);
 ```
