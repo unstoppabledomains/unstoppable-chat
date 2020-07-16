@@ -2226,10 +2226,12 @@ export default class UnstoppableChat {
             items.forEach((el: any) => {
               const title: string = el.querySelector("title").textContent;
               const link: string = el.querySelector("link").innerHTML;
-              loadedMsgsList.push({
+              const time = el.querySelector("pubDate").textContent;
+              loadedMsgsList.unshift({
                 msg: title,
                 link: link,
-                owner: rssTitle
+                owner: rssTitle,
+                time: time
               });
               emitter.emit('announcementMessages', loadedMsgsList);
             })
