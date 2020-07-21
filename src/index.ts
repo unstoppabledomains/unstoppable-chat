@@ -37,7 +37,7 @@ interface Peers {
 interface Announcement extends Channel {
   admins: { [pubKey: string]: Admin | 'disabled' };
   owner: string;
-  rssFeed?: string;
+  rssLink?: string;
 }
 
 interface Channel {
@@ -55,11 +55,12 @@ interface Channel {
 }
 
 interface Message {
-  time: number;
-  msg: unknown;
-  owner: string;
+  time?: number;
+  msg: any;
+  owner?: string;
   userPub?: string;
   peerInfo?: string;
+  link?: string;
 }
 
 interface Events {
@@ -567,7 +568,7 @@ export default class UnstoppableChat {
               msg: decMsg,
               owner: name,
             });
-            loadedMsgsList.sort((a, b) => a.time - b.time);
+            loadedMsgsList.sort((a: any, b: any) => a.time - b.time);
             gun
               .get('pchat')
               .get(gun.user().is.pub)
@@ -1271,7 +1272,7 @@ export default class UnstoppableChat {
               msg: msgToLoad,
               peerInfo: msgData.peerInfo,
             });
-            loadedMsgsList.sort((a, b) => a.time - b.time);
+            loadedMsgsList.sort((a: any, b: any) => a.time - b.time);
             gun
               .get('pchannel')
               .get(channel.key)
@@ -1366,7 +1367,7 @@ export default class UnstoppableChat {
     };
   }
 
-  async createAnnouncement(announcementName: string, isPrivate: boolean) {
+  async createAnnouncement(announcementName: string, isPrivate: boolean, rssLink: string) {
     const gun = this.gun;
     const publicName = this.publicName;
     const announcementPair = await (Gun.SEA as any).pair();
@@ -1380,6 +1381,7 @@ export default class UnstoppableChat {
       admins: {},
       isPrivate: isPrivate,
       hash: '',
+      rssLink: rssLink 
     };
     if (isPrivate) {
       const sec = await (Gun.SEA as any).secret(
@@ -1567,7 +1569,7 @@ export default class UnstoppableChat {
                               pair,
                               hash: announcement.hash,
                               isPrivate: announcement.isPrivate,
-                              rssFeed: announcement.rssFeed
+                              rssLink: announcement.rssLink
                             });
                             emitter.emit(
                               'announcements',
@@ -2191,7 +2193,7 @@ export default class UnstoppableChat {
                 msg: msgToLoad,
                 peerInfo: msgData.peerInfo,
               });
-              loadedMsgsList.sort((a, b) => a.time - b.time);
+              loadedMsgsList.sort((a: any, b: any) => a.time - b.time);
               passedEmitter.emit('announcementMessages', loadedMsgsList);
             }
             gun
@@ -2210,48 +2212,74 @@ export default class UnstoppableChat {
     return {
       on: (cb: (param: Events['announcementMessages']) => void) => {
         emitter.on('announcementMessages', cb);
-        gun
-        .user()
-        .get('announcement')
-        .get(announcement.key)
-        .get('peers')
-        .on((peers) => {
-          Object.keys(peers).forEach((pubKey) => {
-            if (
-              pubKey === '_' ||
-              !peers[pubKey] ||
-              typeof peers[pubKey] !== 'string'
-            )
-              return;
-            let peer;
-            if (peers[pubKey] !== 'disabled') {
-              peer = JSON.parse(peers[pubKey]);
-              if (typeof peer === 'string') {
-                peer = JSON.parse(peer);
+        if(announcement.rssLink){
+          if (location.hostname === "localhost" || location.hostname === "127.0.0.1"){
+            announcement.rssLink = 'https://cors-anywhere.herokuapp.com/' + announcement.rssLink;
+          }
+          fetch(announcement.rssLink)
+          .then(response => response.text())
+          .then(str => new window.DOMParser().parseFromString(str, "text/xml"))
+          .then(data => {
+            if(!data) return;
+            const items = data.querySelectorAll("item");
+            const rssTitle = data.querySelector("title")!.textContent || announcement.name;
+            items.forEach((el: any) => {
+              const title: string = el.querySelector("title").textContent;
+              const link: string = el.querySelector("link").innerHTML;
+              const time = el.querySelector("pubDate").textContent;
+              loadedMsgsList.unshift({
+                msg: title,
+                link: link,
+                owner: rssTitle,
+                time: time
+              });
+              emitter.emit('announcementMessages', loadedMsgsList);
+            })
+          })
+        }else{
+          gun
+          .user()
+          .get('announcement')
+          .get(announcement.key)
+          .get('peers')
+          .on((peers) => {
+            Object.keys(peers).forEach((pubKey) => {
+              if (
+                pubKey === '_' ||
+                !peers[pubKey] ||
+                typeof peers[pubKey] !== 'string'
+              )
+                return;
+              let peer;
+              if (peers[pubKey] !== 'disabled') {
+                peer = JSON.parse(peers[pubKey]);
+                if (typeof peer === 'string') {
+                  peer = JSON.parse(peer);
+                }
+              } else if (peers[pubKey] === 'disabled' && loadedPeers[pubKey]) {
+                delete announcement.peers[pubKey];
+                loadedPeers[pubKey] = false;
+                return;
               }
-            } else if (peers[pubKey] === 'disabled' && loadedPeers[pubKey]) {
-              delete announcement.peers[pubKey];
-              loadedPeers[pubKey] = false;
-              return;
-            }
-            const peerAnnouncementChatPath = gun
-              .user(pubKey)
-              .get('announcement')
-              .get(announcementKey)
-              .get('chat');
-            if (
-              !peer ||
-              !peer.name ||
-              (peer.name && !peer.disabled && loadedPeers[pubKey])
-            )
-              return;
-            else if (!peer.disabled && peer.name && !loadedPeers[pubKey]) {
-              loadedPeers[pubKey] = true;
-              announcement.peers[pubKey] = peer;
-              loadMsgsOf(peerAnnouncementChatPath, peer.name, emitter);
-            }
+              const peerAnnouncementChatPath = gun
+                .user(pubKey)
+                .get('announcement')
+                .get(announcementKey)
+                .get('chat');
+              if (
+                !peer ||
+                !peer.name ||
+                (peer.name && !peer.disabled && loadedPeers[pubKey])
+              )
+                return;
+              else if (!peer.disabled && peer.name && !loadedPeers[pubKey]) {
+                loadedPeers[pubKey] = true;
+                announcement.peers[pubKey] = peer;
+                loadMsgsOf(peerAnnouncementChatPath, peer.name, emitter);
+              }
+            });
           });
-        });
+        }
       },
     };
   }
