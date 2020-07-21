@@ -1415,7 +1415,7 @@ export default class UnstoppableChat {
         { name: 'SHA-256' },
       );
       if (!hash) return;
-      gun.get('#public/announcements/1').get(hash).put(JSON.stringify(announcement));
+      gun.get('#public/announcements/2').get(hash).put(JSON.stringify(announcement));
       announcement.hash = hash;
       if (!this.publicName) return;
       const peerData: Peer = {
@@ -1432,7 +1432,7 @@ export default class UnstoppableChat {
       );
       if (!peerHash) return;
       gun
-        .get(`#public/announcements/1/${announcement.key}/peers`)
+        .get(`#public/announcements/2/${announcement.key}/peers`)
         .get(peerHash)
         .put(JSON.stringify(peerData));
       announcement.peers[gun.user().is.pub] = peerData;
@@ -1695,13 +1695,13 @@ export default class UnstoppableChat {
     return {
       on: (cb: (param: Events['publicAnnouncements']) => void) => {
         emitter.on('publicAnnouncements', cb);
-        gun.get('#public/announcements/1').on((hashMap: any) => {
+        gun.get('#public/announcements/2').on((hashMap: any) => {
           Object.keys(hashMap).forEach((hash: string) => {
             if (hash === '_') {
               return;
             }
             gun
-              .get('#public/announcements/1')
+              .get('#public/announcements/2')
               .get(hash)
               .once((announcementStr: string) => {
                 if (!announcementStr) {
@@ -1743,7 +1743,7 @@ export default class UnstoppableChat {
     });
     if (!hash) return;
     gun
-      .get(`#public/announcements/1/${publicAnnouncement.key}/peers`)
+      .get(`#public/announcements/2/${publicAnnouncement.key}/peers`)
       .get(hash)
       .put(JSON.stringify(peerData));
     publicAnnouncement.peers = publicAnnouncement.peers || {};
