@@ -52,6 +52,7 @@ interface Channel {
   hash?: string;
   owner?: string;
   disabled?: boolean;
+  kind?: string;
 }
 
 interface Message {
@@ -249,6 +250,7 @@ export default class UnstoppableChat {
 
   async addContact(username: string, pubKey: string, publicName: string) {
     const gun = this.gun;
+    if(!gun.user().is) return;
     await this.validatePubKeyFromUsername(username, pubKey);
     gun.get(pubKey).get('invites').get('contacts').get(gun.user().is.pub).put({
       pubKey: gun.user().is.pub,
@@ -280,6 +282,7 @@ export default class UnstoppableChat {
 
   async loadContacts() {
     const gun = this.gun;
+    if(!gun.user().is) return;
     const contactsList = this.contactsList;
     const loadedContacts = {};
     const emitter = new EventEmitter();
@@ -519,6 +522,7 @@ export default class UnstoppableChat {
 
   async loadMessagesOfContact(pubKey: string, publicName: string) {
     const gun = this.gun;
+    if(!gun.user().is) return;
     this.activeContact = pubKey;
     this.activeChannel = null;
     const thisChat = this;
@@ -596,6 +600,7 @@ export default class UnstoppableChat {
 
   async createChannel(channelName: string, isPrivate: boolean) {
     const gun = this.gun;
+    if(!gun.user().is) return;
     const channelPair = await (Gun.SEA as any).pair();
     const channelKey = channelPair.epub;
     const channel = {
@@ -606,6 +611,7 @@ export default class UnstoppableChat {
       peers: {},
       isPrivate: isPrivate,
       hash: '',
+      kind: 'channel'
     };
     if (isPrivate) {
       const sec = await (Gun.SEA as any).secret(channelKey, gun.user()._.sea);
@@ -670,6 +676,7 @@ export default class UnstoppableChat {
 
   leaveChannel(channel: Channel) {
     const gun = this.gun;
+    if(!gun.user().is) return;
     const leaveMsg = `${this.publicName} has left the chat.`;
     this.sendMessageToChannel(channel, leaveMsg, {
       pubKey: gun.user().is.pub,
@@ -682,6 +689,7 @@ export default class UnstoppableChat {
 
   async loadChannels() {
     const gun = this.gun;
+    if(!gun.user().is) return;
     const loadedChannels = {};
     const loadedChannelsList = this.channelsList;
     const emitter = new EventEmitter();
@@ -753,6 +761,7 @@ export default class UnstoppableChat {
                         isPrivate: channel.isPrivate,
                         hash: channel.hash,
                         owner: channel.owner,
+                        kind: channel.kind
                       });
                       emitter.emit('channels', loadedChannelsList);
                       Object.keys(peers).forEach((pubKey) => {
@@ -859,6 +868,7 @@ export default class UnstoppableChat {
 
   async joinPublicChannel(publicChannel: Channel) {
     const gun = this.gun;
+    if(!gun.user().is) return;
     const publicName = this.publicName;
     const pubKey = gun.user().is.pub;
     if (!publicName || !pubKey || !publicChannel) return;
@@ -895,6 +905,7 @@ export default class UnstoppableChat {
       return;
     }
     const gun = this.gun;
+    if(!gun.user().is) return;
     await this.validatePubKeyFromUsername(username, peerPubKey);
     const otherPeer = await gun.user(peerPubKey);
     let otherPeerEpub = otherPeer.epub;
@@ -942,6 +953,7 @@ export default class UnstoppableChat {
 
   async loadChannelInvites() {
     const gun = this.gun;
+    if(!gun.user().is) return;
     const loadedInvites = {};
     const loadedInvitesList = this.channelInvitesList;
     const emitter = new EventEmitter();
@@ -1175,6 +1187,7 @@ export default class UnstoppableChat {
 
   async loadMessagesOfChannel(channel: Channel) {
     const gun = this.gun;
+    if(!gun.user().is) return;
     this.activeChannel = channel.key;
     this.activeContact = null;
     const thisChat = this;
@@ -1381,7 +1394,8 @@ export default class UnstoppableChat {
       admins: {},
       isPrivate: isPrivate,
       hash: '',
-      rssLink: rssLink 
+      rssLink: rssLink,
+      kind: (rssLink && rssLink.length > 1) ? 'rss' : 'announcement'
     };
     if (isPrivate) {
       const sec = await (Gun.SEA as any).secret(
@@ -1485,6 +1499,7 @@ export default class UnstoppableChat {
 
   async loadAnnouncements() {
     const gun = this.gun;
+    if(!gun.user().is) return;
     const loadedAnnouncements = {};
     const loadedAnnouncementsList = this.announcementsList;
     const emitter = new EventEmitter();
@@ -1569,7 +1584,8 @@ export default class UnstoppableChat {
                               pair,
                               hash: announcement.hash,
                               isPrivate: announcement.isPrivate,
-                              rssLink: announcement.rssLink
+                              rssLink: announcement.rssLink,
+                              kind: announcement.kind
                             });
                             emitter.emit(
                               'announcements',
@@ -1796,6 +1812,7 @@ export default class UnstoppableChat {
 
   async loadAnnouncementInvites() {
     const gun = this.gun;
+    if(!gun.user().is) return;
     const loadedInvites = {};
     const loadedInvitesList = this.announcementInvitesList;
     const emitter = new EventEmitter();
@@ -2078,6 +2095,7 @@ export default class UnstoppableChat {
 
   async loadMessagesOfAnnouncement(announcement: Announcement) {
     const gun = this.gun;
+    if(!gun.user().is) return;
     this.activeAnnouncement = announcement.key;
     this.activeContact = null;
     const thisChat = this;
