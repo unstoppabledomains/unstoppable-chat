@@ -96,7 +96,7 @@ export default class UnstoppableChat {
   activeChannel: string | null;
   activeAnnouncement: string | null;
   publicChannelsList: Channel[];
-  publicAnnouncementsList: Announcement[]
+  publicAnnouncementsList: Announcement[];
 
   constructor(superpeers: any) {
     this.gun = new Gun(superpeers);
@@ -250,7 +250,7 @@ export default class UnstoppableChat {
 
   async addContact(username: string, pubKey: string, publicName: string) {
     const gun = this.gun;
-    if(!gun.user().is) return;
+    if (!gun.user().is) return;
     await this.validatePubKeyFromUsername(username, pubKey);
     gun.get(pubKey).get('invites').get('contacts').get(gun.user().is.pub).put({
       pubKey: gun.user().is.pub,
@@ -282,7 +282,7 @@ export default class UnstoppableChat {
 
   async loadContacts() {
     const gun = this.gun;
-    if(!gun.user().is) return;
+    if (!gun.user().is) return;
     const contactsList = this.contactsList;
     const loadedContacts = {};
     const emitter = new EventEmitter();
@@ -522,7 +522,7 @@ export default class UnstoppableChat {
 
   async loadMessagesOfContact(pubKey: string, publicName: string) {
     const gun = this.gun;
-    if(!gun.user().is) return;
+    if (!gun.user().is) return;
     this.activeContact = pubKey;
     this.activeChannel = null;
     const thisChat = this;
@@ -600,7 +600,7 @@ export default class UnstoppableChat {
 
   async createChannel(channelName: string, isPrivate: boolean) {
     const gun = this.gun;
-    if(!gun.user().is) return;
+    if (!gun.user().is) return;
     const channelPair = await (Gun.SEA as any).pair();
     const channelKey = channelPair.epub;
     const channel = {
@@ -611,7 +611,7 @@ export default class UnstoppableChat {
       peers: {},
       isPrivate: isPrivate,
       hash: '',
-      kind: 'channel'
+      kind: 'channel',
     };
     if (isPrivate) {
       const sec = await (Gun.SEA as any).secret(channelKey, gun.user()._.sea);
@@ -676,7 +676,7 @@ export default class UnstoppableChat {
 
   leaveChannel(channel: Channel) {
     const gun = this.gun;
-    if(!gun.user().is) return;
+    if (!gun.user().is) return;
     const leaveMsg = `${this.publicName} has left the chat.`;
     this.sendMessageToChannel(channel, leaveMsg, {
       pubKey: gun.user().is.pub,
@@ -689,7 +689,7 @@ export default class UnstoppableChat {
 
   async loadChannels() {
     const gun = this.gun;
-    if(!gun.user().is) return;
+    if (!gun.user().is) return;
     const loadedChannels = {};
     const loadedChannelsList = this.channelsList;
     const emitter = new EventEmitter();
@@ -761,7 +761,7 @@ export default class UnstoppableChat {
                         isPrivate: channel.isPrivate,
                         hash: channel.hash,
                         owner: channel.owner,
-                        kind: channel.kind
+                        kind: channel.kind,
                       });
                       emitter.emit('channels', loadedChannelsList);
                       Object.keys(peers).forEach((pubKey) => {
@@ -868,14 +868,19 @@ export default class UnstoppableChat {
 
   async joinPublicChannel(publicChannel: Channel) {
     const gun = this.gun;
-    if(!gun.user().is) return;
+    if (!gun.user().is) return;
     const publicName = this.publicName;
     const pubKey = gun.user().is.pub;
     if (!publicName || !pubKey || !publicChannel) return;
-    if(publicChannel.disabled) {
-      publicChannel.disabled = false
-    };
-    gun.user().get('pchannel').get(publicChannel.key).get("disabled").put(false);
+    if (publicChannel.disabled) {
+      publicChannel.disabled = false;
+    }
+    gun
+      .user()
+      .get('pchannel')
+      .get(publicChannel.key)
+      .get('disabled')
+      .put(false);
     gun.user().get('pchannel').get(publicChannel.key).put(publicChannel);
     const peerData: Peer = {
       alias: gun.user().is.alias,
@@ -905,7 +910,7 @@ export default class UnstoppableChat {
       return;
     }
     const gun = this.gun;
-    if(!gun.user().is) return;
+    if (!gun.user().is) return;
     await this.validatePubKeyFromUsername(username, peerPubKey);
     const otherPeer = await gun.user(peerPubKey);
     let otherPeerEpub = otherPeer.epub;
@@ -953,7 +958,7 @@ export default class UnstoppableChat {
 
   async loadChannelInvites() {
     const gun = this.gun;
-    if(!gun.user().is) return;
+    if (!gun.user().is) return;
     const loadedInvites = {};
     const loadedInvitesList = this.channelInvitesList;
     const emitter = new EventEmitter();
@@ -1187,7 +1192,7 @@ export default class UnstoppableChat {
 
   async loadMessagesOfChannel(channel: Channel) {
     const gun = this.gun;
-    if(!gun.user().is) return;
+    if (!gun.user().is) return;
     this.activeChannel = channel.key;
     this.activeContact = null;
     const thisChat = this;
@@ -1380,7 +1385,11 @@ export default class UnstoppableChat {
     };
   }
 
-  async createAnnouncement(announcementName: string, isPrivate: boolean, rssLink: string) {
+  async createAnnouncement(
+    announcementName: string,
+    isPrivate: boolean,
+    rssLink: string,
+  ) {
     const gun = this.gun;
     const publicName = this.publicName;
     const announcementPair = await (Gun.SEA as any).pair();
@@ -1391,11 +1400,11 @@ export default class UnstoppableChat {
       key: announcementKey,
       owner: gun.user()._.sea.pub,
       peers: {},
-      admins: {[gun.user()._.sea.pub]: true},
+      admins: { [gun.user()._.sea.pub]: true },
       isPrivate: isPrivate,
       hash: '',
       rssLink: rssLink,
-      kind: (rssLink && rssLink.length > 1) ? 'rss' : 'announcement'
+      kind: rssLink && rssLink.length > 1 ? 'rss' : 'announcement',
     };
     if (isPrivate) {
       const sec = await (Gun.SEA as any).secret(
@@ -1415,7 +1424,10 @@ export default class UnstoppableChat {
         { name: 'SHA-256' },
       );
       if (!hash) return;
-      gun.get('#public/announcements/3').get(hash).put(JSON.stringify(announcement));
+      gun
+        .get('#public/announcements/3')
+        .get(hash)
+        .put(JSON.stringify(announcement));
       announcement.hash = hash;
       if (!this.publicName) return;
       const peerData: Peer = {
@@ -1438,7 +1450,6 @@ export default class UnstoppableChat {
       announcement.peers[gun.user().is.pub] = peerData;
     }
 
-
     return new Promise((resolve) => {
       gun
         .user()
@@ -1452,12 +1463,13 @@ export default class UnstoppableChat {
             .get('admins')
             .get(gun.user().is.pub)
             .put(this.publicName);
-          if(announcement.hash){
+          if (announcement.hash) {
             gun
-            .user()
-            .get('announcement')
-            .get(announcementKey)
-            .get('hash').put(announcement.hash)
+              .user()
+              .get('announcement')
+              .get(announcementKey)
+              .get('hash')
+              .put(announcement.hash);
           }
           const userPeer = JSON.stringify({
             alias: gun.user().is.alias,
@@ -1473,7 +1485,7 @@ export default class UnstoppableChat {
             .get('peers')
             .get(gun.user().is.pub)
             .put(userPeer);
-          announcement.admins[gun.user().is.pub] = true
+          announcement.admins[gun.user().is.pub] = true;
           announcement.peers[gun.user().is.pub] = userPeer;
           announcement.pair = announcementPair;
           resolve(announcement);
@@ -1499,7 +1511,7 @@ export default class UnstoppableChat {
 
   async loadAnnouncements() {
     const gun = this.gun;
-    if(!gun.user().is) return;
+    if (!gun.user().is) return;
     const loadedAnnouncements = {};
     const loadedAnnouncementsList = this.announcementsList;
     const emitter = new EventEmitter();
@@ -1585,7 +1597,7 @@ export default class UnstoppableChat {
                               hash: announcement.hash,
                               isPrivate: announcement.isPrivate,
                               rssLink: announcement.rssLink,
-                              kind: announcement.kind
+                              kind: announcement.kind,
                             });
                             emitter.emit(
                               'announcements',
@@ -1708,10 +1720,14 @@ export default class UnstoppableChat {
                   return;
                 }
                 const announcement = JSON.parse(announcementStr);
-                if (!announcement || !announcement.key || loadedAnnouncements[announcement.key]) {
+                if (
+                  !announcement ||
+                  !announcement.key ||
+                  loadedAnnouncements[announcement.key]
+                ) {
                   return;
                 }
-                if (!announcement.hash)announcement.hash = hash;
+                if (!announcement.hash) announcement.hash = hash;
                 loadedAnnouncements[announcement.key] = true;
                 loadedAnnouncementList.push(announcement);
                 emitter.emit('publicAnnouncements', loadedAnnouncementList);
@@ -1727,17 +1743,37 @@ export default class UnstoppableChat {
     const publicName = this.publicName;
     const pubKey = gun.user().is.pub;
     if (!publicName || !pubKey || !publicAnnouncement) return;
-    if(publicAnnouncement.disabled) {
-      publicAnnouncement.disabled = false
-    };
-    gun.user().get('announcement').get(publicAnnouncement.key).get("disabled").put(false);
-    gun.user().get('announcement').get(publicAnnouncement.key).put(publicAnnouncement);
-    gun.user(publicAnnouncement.owner).get('announcement').get(publicAnnouncement.key).get('admins').once((admins: any) => {
-      Object.keys(admins).forEach((adminPub) => {
-        if(adminPub === '_') return;
-        gun.user().get('announcement').get(publicAnnouncement.key).get('admins').get(adminPub).put(true);
-      })
-    })
+    if (publicAnnouncement.disabled) {
+      publicAnnouncement.disabled = false;
+    }
+    gun
+      .user()
+      .get('announcement')
+      .get(publicAnnouncement.key)
+      .get('disabled')
+      .put(false);
+    gun
+      .user()
+      .get('announcement')
+      .get(publicAnnouncement.key)
+      .put(publicAnnouncement);
+    gun
+      .user(publicAnnouncement.owner)
+      .get('announcement')
+      .get(publicAnnouncement.key)
+      .get('admins')
+      .once((admins: any) => {
+        Object.keys(admins).forEach((adminPub) => {
+          if (adminPub === '_') return;
+          gun
+            .user()
+            .get('announcement')
+            .get(publicAnnouncement.key)
+            .get('admins')
+            .get(adminPub)
+            .put(true);
+        });
+      });
     const peerData: Peer = {
       alias: gun.user().is.alias,
       name: publicName,
@@ -1818,7 +1854,7 @@ export default class UnstoppableChat {
 
   async loadAnnouncementInvites() {
     const gun = this.gun;
-    if(!gun.user().is) return;
+    if (!gun.user().is) return;
     const loadedInvites = {};
     const loadedInvitesList = this.announcementInvitesList;
     const emitter = new EventEmitter();
@@ -2101,7 +2137,7 @@ export default class UnstoppableChat {
 
   async loadMessagesOfAnnouncement(announcement: Announcement) {
     const gun = this.gun;
-    if(!gun.user().is) return;
+    if (!gun.user().is) return;
     this.activeAnnouncement = announcement.key;
     this.activeContact = null;
     const thisChat = this;
@@ -2131,7 +2167,8 @@ export default class UnstoppableChat {
               msgData = JSON.parse(msgDataString);
               msgToLoad = msgData.msg;
             }
-            if (typeof msgData.msg === 'string' && 
+            if (
+              typeof msgData.msg === 'string' &&
               (announcement.isPrivate || !announcement.hash)
             ) {
               msgData.msg = JSON.parse(
@@ -2143,7 +2180,8 @@ export default class UnstoppableChat {
               );
               msgToLoad = await Gun.SEA.decrypt(msgData.msg, announcementSec);
             }
-            if (!msgData || !msgData.msg || !msgToLoad || !msgData.userPub) return;
+            if (!msgData || !msgData.msg || !msgToLoad || !msgData.userPub)
+              return;
             if (msgData.peerInfo) {
               if (typeof msgData.peerInfo === 'string') {
                 msgData.peerInfo = JSON.parse(msgData.peerInfo);
@@ -2237,102 +2275,125 @@ export default class UnstoppableChat {
     return {
       on: (cb: (param: Events['announcementMessages']) => void) => {
         emitter.on('announcementMessages', cb);
-        if(announcement.rssLink){
-          if (location.hostname === "localhost" || location.hostname === "127.0.0.1"){
-            announcement.rssLink = 'https://cors-anywhere.herokuapp.com/' + announcement.rssLink;
+        if (announcement.rssLink) {
+          if (
+            location.hostname === 'localhost' ||
+            location.hostname === '127.0.0.1'
+          ) {
+            announcement.rssLink =
+              'https://cors-anywhere.herokuapp.com/' + announcement.rssLink;
           }
-          fetch(announcement.rssLink)
-          .then(response => response.text())
-          .then(str => new window.DOMParser().parseFromString(str, "text/xml"))
-          .then(data => {
-            if(!data) return;
-            const items = data.querySelectorAll("item");
-            const rssTitle = data.querySelector("title")!.textContent || announcement.name;
-            items.forEach((el: any) => {
-              const title: string = el.querySelector("title").textContent;
-              const link: string = el.querySelector("link").innerHTML;
-              const time = el.querySelector("pubDate").textContent;
-              loadedMsgsList.unshift({
-                msg: title,
-                link: link,
-                owner: rssTitle,
-                time: time
-              });
-              emitter.emit('announcementMessages', loadedMsgsList);
-            })
+          fetch(announcement.rssLink, {
+            headers: {
+              'Access-Control-Allow-Origin': '*',
+            },
           })
-        }else if (announcement.hash && !announcement.isPrivate) {
-          gun.user(announcement.owner).get('announcement').get(announcement.key).get('admins').once((admins) => {
-            announcement.admins = admins;
-            gun
-            .get(`#public/announcements/3/${announcement.key}/peers`)
-            .on((hashMap: any) => {
-              if (!hashMap || typeof hashMap !== 'object') return;
-              Object.keys(hashMap).forEach((hash) => {
-                if (hash === '_') return;
-                gun
-                  .get(`#public/announcements/3/${announcement.key}/peers`)
-                  .get(hash)
-                  .on((peerStr: string) => {
-                    const peer = JSON.parse(peerStr);
-                    if (!peer || peer.disbled || loadedPeers[peer.pubKey])
-                      return;
-                    loadedPeers[peer.pubKey] = peer;
-                    const peerAnnouncementChatPath = gun
-                      .user(peer.pubKey)
-                      .get('announcement')
-                      .get(announcement.key)
-                      .get('chat');
-
-                    announcement.peers[peer.pubKey] = peer;
-                    loadMsgsOf(peerAnnouncementChatPath, peer.name, emitter);
-                  });
+            .then((response) => response.text())
+            .then((str) =>
+              new window.DOMParser().parseFromString(str, 'text/xml'),
+            )
+            .then((data) => {
+              if (!data) return;
+              const items = data.querySelectorAll('item');
+              const rssTitle =
+                data.querySelector('title')!.textContent || announcement.name;
+              items.forEach((el: any) => {
+                const title: string = el.querySelector('title').textContent;
+                const link: string = el.querySelector('link').innerHTML;
+                const time = el.querySelector('pubDate').textContent;
+                loadedMsgsList.unshift({
+                  msg: title,
+                  link: link,
+                  owner: rssTitle,
+                  time: time,
+                });
+                emitter.emit('announcementMessages', loadedMsgsList);
               });
             });
-          })
+        } else if (announcement.hash && !announcement.isPrivate) {
+          gun
+            .user(announcement.owner)
+            .get('announcement')
+            .get(announcement.key)
+            .get('admins')
+            .once((admins) => {
+              announcement.admins = admins;
+              gun
+                .get(`#public/announcements/3/${announcement.key}/peers`)
+                .on((hashMap: any) => {
+                  if (!hashMap || typeof hashMap !== 'object') return;
+                  Object.keys(hashMap).forEach((hash) => {
+                    if (hash === '_') return;
+                    gun
+                      .get(`#public/announcements/3/${announcement.key}/peers`)
+                      .get(hash)
+                      .on((peerStr: string) => {
+                        const peer = JSON.parse(peerStr);
+                        if (!peer || peer.disbled || loadedPeers[peer.pubKey])
+                          return;
+                        loadedPeers[peer.pubKey] = peer;
+                        const peerAnnouncementChatPath = gun
+                          .user(peer.pubKey)
+                          .get('announcement')
+                          .get(announcement.key)
+                          .get('chat');
+
+                        announcement.peers[peer.pubKey] = peer;
+                        loadMsgsOf(
+                          peerAnnouncementChatPath,
+                          peer.name,
+                          emitter,
+                        );
+                      });
+                  });
+                });
+            });
         } else {
           gun
-          .user()
-          .get('announcement')
-          .get(announcement.key)
-          .get('peers')
-          .on((peers) => {
-            Object.keys(peers).forEach((pubKey) => {
-              if (
-                pubKey === '_' ||
-                !peers[pubKey] ||
-                typeof peers[pubKey] !== 'string'
-              )
-                return;
-              let peer;
-              if (peers[pubKey] !== 'disabled') {
-                peer = JSON.parse(peers[pubKey]);
-                if (typeof peer === 'string') {
-                  peer = JSON.parse(peer);
+            .user()
+            .get('announcement')
+            .get(announcement.key)
+            .get('peers')
+            .on((peers) => {
+              Object.keys(peers).forEach((pubKey) => {
+                if (
+                  pubKey === '_' ||
+                  !peers[pubKey] ||
+                  typeof peers[pubKey] !== 'string'
+                )
+                  return;
+                let peer;
+                if (peers[pubKey] !== 'disabled') {
+                  peer = JSON.parse(peers[pubKey]);
+                  if (typeof peer === 'string') {
+                    peer = JSON.parse(peer);
+                  }
+                } else if (
+                  peers[pubKey] === 'disabled' &&
+                  loadedPeers[pubKey]
+                ) {
+                  delete announcement.peers[pubKey];
+                  loadedPeers[pubKey] = false;
+                  return;
                 }
-              } else if (peers[pubKey] === 'disabled' && loadedPeers[pubKey]) {
-                delete announcement.peers[pubKey];
-                loadedPeers[pubKey] = false;
-                return;
-              }
-              const peerAnnouncementChatPath = gun
-                .user(pubKey)
-                .get('announcement')
-                .get(announcementKey)
-                .get('chat');
-              if (
-                !peer ||
-                !peer.name ||
-                (peer.name && !peer.disabled && loadedPeers[pubKey])
-              )
-                return;
-              else if (!peer.disabled && peer.name && !loadedPeers[pubKey]) {
-                loadedPeers[pubKey] = true;
-                announcement.peers[pubKey] = peer;
-                loadMsgsOf(peerAnnouncementChatPath, peer.name, emitter);
-              }
+                const peerAnnouncementChatPath = gun
+                  .user(pubKey)
+                  .get('announcement')
+                  .get(announcementKey)
+                  .get('chat');
+                if (
+                  !peer ||
+                  !peer.name ||
+                  (peer.name && !peer.disabled && loadedPeers[pubKey])
+                )
+                  return;
+                else if (!peer.disabled && peer.name && !loadedPeers[pubKey]) {
+                  loadedPeers[pubKey] = true;
+                  announcement.peers[pubKey] = peer;
+                  loadMsgsOf(peerAnnouncementChatPath, peer.name, emitter);
+                }
+              });
             });
-          });
         }
       },
     };
