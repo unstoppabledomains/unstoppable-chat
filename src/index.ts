@@ -2276,18 +2276,7 @@ export default class UnstoppableChat {
       on: (cb: (param: Events['announcementMessages']) => void) => {
         emitter.on('announcementMessages', cb);
         if (announcement.rssLink) {
-          if (
-            location.hostname === 'localhost' ||
-            location.hostname === '127.0.0.1'
-          ) {
-            announcement.rssLink =
-              'https://cors-anywhere.herokuapp.com/' + announcement.rssLink;
-          }
-          fetch(announcement.rssLink, {
-            headers: {
-              'Access-Control-Allow-Origin': '*',
-            },
-          })
+          fetch('https://cors-anywhere.herokuapp.com/' + announcement.rssLink)
             .then((response) => response.text())
             .then((str) =>
               new window.DOMParser().parseFromString(str, 'text/xml'),
