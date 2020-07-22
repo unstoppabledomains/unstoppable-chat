@@ -1,6 +1,6 @@
 {
   "name": "@unstoppabledomains/chat",
-  "version": "3.0.0",
+  "version": "3.2.0",
   "description": "Decentralized chat library",
   "main": "build/index.js",
   "repository": "https://github.com/unstoppabledomains/unstoppable-chat.git",
