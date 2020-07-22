@@ -1391,7 +1391,7 @@ export default class UnstoppableChat {
       key: announcementKey,
       owner: gun.user()._.sea.pub,
       peers: {},
-      admins: {},
+      admins: {[gun.user()._.sea.pub]: true},
       isPrivate: isPrivate,
       hash: '',
       rssLink: rssLink,
@@ -1473,7 +1473,7 @@ export default class UnstoppableChat {
             .get('peers')
             .get(gun.user().is.pub)
             .put(userPeer);
-          announcement.admins[gun.user().is.pub] = publicName;
+          announcement.admins[gun.user().is.pub] = true
           announcement.peers[gun.user().is.pub] = userPeer;
           announcement.pair = announcementPair;
           resolve(announcement);
@@ -1732,6 +1732,12 @@ export default class UnstoppableChat {
     };
     gun.user().get('announcement').get(publicAnnouncement.key).get("disabled").put(false);
     gun.user().get('announcement').get(publicAnnouncement.key).put(publicAnnouncement);
+    gun.user(publicAnnouncement.owner).get('announcement').get(publicAnnouncement.key).get('admins').once((admins: any) => {
+      Object.keys(admins).forEach((adminPub) => {
+        if(adminPub === '_') return;
+        gun.user().get('announcement').get(publicAnnouncement.key).get('admins').get(adminPub).put(true);
+      })
+    })
     const peerData: Peer = {
       alias: gun.user().is.alias,
       name: publicName,
@@ -2103,6 +2109,7 @@ export default class UnstoppableChat {
     const loadedMsgsList: Message[] = [];
     const loadedMsgs = {};
     const emitter = new EventEmitter();
+
     async function loadMsgsOf(path, name, passedEmitter) {
       path.not((key) => {
         passedEmitter.emit('announcementMessages', loadedMsgsList);
@@ -2254,7 +2261,36 @@ export default class UnstoppableChat {
               emitter.emit('announcementMessages', loadedMsgsList);
             })
           })
-        }else{
+        }else if (announcement.hash && !announcement.isPrivate) {
+          gun.user(announcement.owner).get('announcement').get(announcement.key).get('admins').once((admins) => {
+            announcement.admins = admins;
+            gun
+            .get(`#public/announcements/3/${announcement.key}/peers`)
+            .on((hashMap: any) => {
+              if (!hashMap || typeof hashMap !== 'object') return;
+              Object.keys(hashMap).forEach((hash) => {
+                if (hash === '_') return;
+                gun
+                  .get(`#public/announcements/3/${announcement.key}/peers`)
+                  .get(hash)
+                  .on((peerStr: string) => {
+                    const peer = JSON.parse(peerStr);
+                    if (!peer || peer.disbled || loadedPeers[peer.pubKey])
+                      return;
+                    loadedPeers[peer.pubKey] = peer;
+                    const peerAnnouncementChatPath = gun
+                      .user(peer.pubKey)
+                      .get('announcement')
+                      .get(announcement.key)
+                      .get('chat');
+
+                    announcement.peers[peer.pubKey] = peer;
+                    loadMsgsOf(peerAnnouncementChatPath, peer.name, emitter);
+                  });
+              });
+            });
+          })
+        } else {
           gun
           .user()
           .get('announcement')
