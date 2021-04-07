@@ -1,4 +1,4 @@
-# Resolution
+# THIS LIBRARY IS DEPRECATED
 
 [![NPM version](https://img.shields.io/npm/v/@unstoppabledomains/chat.svg?style=flat)](https://www.npmjs.com/package/@unstoppabledomains/chat)
 
